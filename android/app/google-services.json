@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "452812756358",
+    "project_id": "plantiva-app-121d6",
+    "storage_bucket": "plantiva-app-121d6.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:452812756358:android:c834077441705a0b28c807",
+        "android_client_info": {
+          "package_name": "com.example.flutter_plantiva"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "452812756358-d2feg5pe4ah9bp6oj7a73eo0pnkhs4f2.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAni33C-49gk32tXwn0pi1Or7-bnn40ycQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "452812756358-d2feg5pe4ah9bp6oj7a73eo0pnkhs4f2.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
