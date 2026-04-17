@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_plantiva/config/app_colors.dart';
 import 'package:flutter_plantiva/services/auth_service.dart';
 import 'package:flutter_plantiva/utils/validators.dart';
@@ -47,21 +48,31 @@ class _RegistrationPageState extends State<RegistrationPage> {
       return;
     }
     setState(() => _loading = true);
-    await _authService.register(
-      fullName: _name.text.trim(),
-      email: _email.text.trim(),
-      password: _password.text.trim(),
-    );
-    if (!mounted) {
-      return;
+    try {
+      await _authService.register(
+        fullName: _name.text.trim(),
+        email: _email.text.trim(),
+        password: _password.text.trim(),
+      );
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Registration successful. Your account is saved in Firebase.',
+          ),
+        ),
+      );
+      Navigator.of(context).pop();
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message ?? 'Registration failed.')),
+      );
+    } finally {
+      if (mounted) setState(() => _loading = false);
     }
-    setState(() => _loading = false);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Registration successful. Welcome to Plantiva!'),
-      ),
-    );
-    Navigator.of(context).pop();
   }
 
   @override

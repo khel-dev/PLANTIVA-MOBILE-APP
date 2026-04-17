@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_plantiva/config/app_colors.dart';
 import 'package:flutter_plantiva/screens/forgot_password.dart';
+import 'package:flutter_plantiva/screens/homepage.dart';
 import 'package:flutter_plantiva/screens/registration.dart';
 import 'package:flutter_plantiva/services/auth_service.dart';
 import 'package:flutter_plantiva/utils/page_transitions.dart';
@@ -55,6 +56,9 @@ class _LoginPageState extends State<LoginPage> {
           ),
         ),
       );
+      Navigator.of(
+        context,
+      ).pushReplacement(AppTransitions.fadeSlide(const HomePage()));
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -72,6 +76,9 @@ class _LoginPageState extends State<LoginPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Google sign-in successful.')),
       );
+      Navigator.of(
+        context,
+      ).pushReplacement(AppTransitions.fadeSlide(const HomePage()));
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
