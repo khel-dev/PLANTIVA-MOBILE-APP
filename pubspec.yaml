@@ -39,6 +39,11 @@ dependencies:
   google_sign_in: ^7.2.0
   cloud_firestore: ^6.3.0
 
+  # AI/ML packages
+  image_picker: ^1.1.2
+  image: ^4.2.0
+  http: ^1.2.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -63,6 +68,7 @@ flutter:
 
   assets:
     - assets/images/
+    - assets/models/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

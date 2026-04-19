@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_plantiva/config/app_colors.dart';
 
 class LabeledField extends StatelessWidget {
-  const LabeledField({super.key, required this.label, required this.child});
+  const LabeledField({super.key, required this.label, required this.child, this.imageHeight = 240, this.logoWithBackground = true});
 
   final String label;
   final Widget child;
+  final double imageHeight;
+  final bool logoWithBackground;
 
   @override
   Widget build(BuildContext context) {

@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_plantiva/config/app_colors.dart';
 import 'package:flutter_plantiva/screens/profile.dart';
+import 'package:flutter_plantiva/screens/scanner_screen.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -71,8 +72,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             ],
           ),
           child: IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.center_focus_strong, color: Colors.white),
+            onPressed: () {
+          Navigator.push(
+        context,
+      MaterialPageRoute(builder: (_) => const ScannerScreen()),
+    );
+  },
+  icon: const Icon(Icons.center_focus_strong, color: Colors.white),
           ),
         ),
       ),
@@ -320,7 +326,10 @@ class _HeroScanCard extends StatelessWidget {
                   backgroundColor: const Color(0xFFFFC400),
                   foregroundColor: const Color(0xFF232323),
                 ),
-                onPressed: () {},
+                onPressed: () {Navigator.push(
+                 context,
+                MaterialPageRoute(builder: (_) => const ScannerScreen()),
+                );},
                 icon: const Icon(Icons.qr_code_scanner_rounded),
                 label: const Text(
                   'Start Scan',
