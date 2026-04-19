@@ -6,6 +6,14 @@ class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
+  static bool _googleSignInInitialized = false;
+
+  Future<void> _ensureGoogleSignInReady() async {
+    if (_googleSignInInitialized) return;
+    await GoogleSignIn.instance.initialize();
+    _googleSignInInitialized = true;
+  }
+
   Future<void> signIn({
     required String email,
     required String password,
@@ -51,9 +59,24 @@ class AuthService {
   }
 
   Future<UserCredential> signInWithGoogle() async {
-    await GoogleSignIn.instance.initialize();
-    final GoogleSignInAccount googleUser = await GoogleSignIn.instance
-        .authenticate();
+    await _ensureGoogleSignInReady();
+    final GoogleSignInAccount googleUser;
+    try {
+      googleUser = await GoogleSignIn.instance.authenticate(
+        scopeHint: const <String>['email', 'profile'],
+      );
+    } on GoogleSignInException catch (e) {
+      if (e.code == GoogleSignInExceptionCode.canceled) {
+        throw FirebaseAuthException(
+          code: 'aborted-by-user',
+          message: 'Google sign-in was cancelled.',
+        );
+      }
+      throw FirebaseAuthException(
+        code: 'google-sign-in-failed',
+        message: e.description ?? e.toString(),
+      );
+    }
     final GoogleSignInAuthentication googleAuth = googleUser.authentication;
     final credential = GoogleAuthProvider.credential(
       idToken: googleAuth.idToken,
@@ -108,7 +131,9 @@ class AuthService {
   }
 
   Future<void> signOut() async {
-    await GoogleSignIn.instance.signOut();
+    if (_googleSignInInitialized) {
+      await GoogleSignIn.instance.signOut();
+    }
     await _auth.signOut();
   }
 }

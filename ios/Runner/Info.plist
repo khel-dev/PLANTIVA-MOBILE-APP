@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Flutter Plantiva</string>
+	<string>Plantiva</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -45,5 +45,9 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Plantiva needs the camera to photograph banana leaves for disease detection.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Plantiva needs photo library access so you can pick a banana leaf image to analyze.</string>
 </dict>
 </plist>

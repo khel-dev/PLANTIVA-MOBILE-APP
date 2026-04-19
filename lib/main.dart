@@ -19,7 +19,7 @@ class PlantivaApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Plantiva',
+      title: 'Plantiva — Smart banana care',
       theme: AppTheme.theme,
       home: StreamBuilder<User?>(
         stream: FirebaseAuth.instance.authStateChanges(),

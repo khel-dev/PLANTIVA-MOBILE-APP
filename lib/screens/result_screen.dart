@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class ResultScreen extends StatelessWidget {
   final String imagePath;
@@ -131,7 +132,7 @@ class ResultScreen extends StatelessWidget {
                               width: 40,
                               height: 40,
                               decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.85),
+                                color: Colors.white.withValues(alpha: 0.85),
                                 shape: BoxShape.circle,
                               ),
                               child: const Icon(
@@ -146,17 +147,36 @@ class ResultScreen extends StatelessWidget {
                         Positioned(
                           top: 12,
                           right: 12,
-                          child: Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.85),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.share_outlined,
-                              color: Colors.black,
-                              size: 20,
+                          child: Material(
+                            color: Colors.white.withValues(alpha: 0.9),
+                            shape: const CircleBorder(),
+                            child: InkWell(
+                              customBorder: const CircleBorder(),
+                              onTap: () async {
+                                final label = result['label'] ?? 'Unknown';
+                                final confidence =
+                                    result['confidence'] ?? '0%';
+                                final text =
+                                    'Plantiva diagnosis\n$label\nConfidence: $confidence';
+                                await Clipboard.setData(ClipboardData(text: text));
+                                if (!context.mounted) return;
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Diagnosis copied — paste into SMS, Messenger, or notes.',
+                                    ),
+                                  ),
+                                );
+                              },
+                              child: const SizedBox(
+                                width: 40,
+                                height: 40,
+                                child: Icon(
+                                  Icons.share_outlined,
+                                  color: Colors.black87,
+                                  size: 20,
+                                ),
+                              ),
                             ),
                           ),
                         ),
@@ -170,7 +190,7 @@ class ResultScreen extends StatelessWidget {
                               vertical: 6,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.9),
+                              color: Colors.white.withValues(alpha: 0.9),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: const Row(
@@ -212,7 +232,7 @@ class ResultScreen extends StatelessWidget {
                               borderRadius: BorderRadius.circular(20),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.06),
+                                  color: Colors.black.withValues(alpha: 0.06),
                                   blurRadius: 10,
                                   offset: const Offset(0, 4),
                                 ),
@@ -369,6 +389,65 @@ class ResultScreen extends StatelessWidget {
 
                           const SizedBox(height: 16),
 
+                          if ((result['insights'] ?? '').trim().isNotEmpty) ...[
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(18),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF0F2918),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: const Color(0xFF2FBF4B)
+                                      .withValues(alpha: 0.35),
+                                ),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.analytics_outlined,
+                                        color: Colors.greenAccent.shade400,
+                                        size: 22,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      const Text(
+                                        'AI runner-ups',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w800,
+                                          fontSize: 15,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 10),
+                                  Text(
+                                    result['insights']!.trim(),
+                                    style: TextStyle(
+                                      color:
+                                          Colors.white.withValues(alpha: 0.88),
+                                      height: 1.55,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Normalized scores show how the model weighs similar diseases. Your top diagnosis still uses the same winner-take-all rule as your Python API.',
+                                    style: TextStyle(
+                                      color:
+                                          Colors.white.withValues(alpha: 0.55),
+                                      fontSize: 11,
+                                      height: 1.35,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                          ],
+
                           // About this condition
                           Container(
                             width: double.infinity,
@@ -378,7 +457,7 @@ class ResultScreen extends StatelessWidget {
                               borderRadius: BorderRadius.circular(20),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.06),
+                                  color: Colors.black.withValues(alpha: 0.06),
                                   blurRadius: 10,
                                   offset: const Offset(0, 4),
                                 ),
@@ -488,7 +567,9 @@ class ResultScreen extends StatelessWidget {
                                   onPressed: () {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(
-                                        content: Text('Result saved!'),
+                                        content: Text(
+                                          'This scan is already in your Firebase history (Saved tab).',
+                                        ),
                                         backgroundColor: Color(0xFF2E7D32),
                                       ),
                                     );
