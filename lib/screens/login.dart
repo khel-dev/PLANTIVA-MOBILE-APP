@@ -232,22 +232,30 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    OutlinedButton.icon(
+                    OutlinedButton(
                       style: OutlinedButton.styleFrom(
                         minimumSize: const Size(double.infinity, 52),
                         side: BorderSide(color: Colors.grey.shade300),
                       ),
                       onPressed: _handleGoogleSignIn,
-                      icon: const Text(
-                        'G',
-                        style: TextStyle(fontWeight: FontWeight.w800),
-                      ),
-                      label: const Text(
-                        'Continue with Google',
-                        style: TextStyle(
-                          fontSize: 19,
-                          fontWeight: FontWeight.w600,
-                        ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Image.asset(
+                            'assets/images/google.png',
+                            height: 22,
+                            width: 22,
+                          ),
+                          const SizedBox(width: 10),
+                          const Text(
+                            'Continue with Google',
+                            style: TextStyle(
+                              fontSize: 19,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(height: 20),
