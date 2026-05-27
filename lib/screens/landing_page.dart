@@ -41,7 +41,7 @@ class _LandingPageState extends State<LandingPage> {
                           const Text(
                             'PLANTIVA',
                             style: TextStyle(
-                              color: Colors.white,
+                              color: Colors.white,    
                               fontSize: 34,
                               fontWeight: FontWeight.w800,
                               letterSpacing: 1.1,

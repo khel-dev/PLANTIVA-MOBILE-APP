@@ -30,8 +30,19 @@ class ClassifierService {
     return exps.map((e) => e / sum).toList();
   }
 
+  /// Computes Shannon entropy of a probability distribution.
+  /// High entropy = model is confused / guessing = likely NOT a banana leaf.
+  /// Max entropy for 7 classes = log(7) ≈ 1.946
+  double _entropy(List<double> probs) {
+    double h = 0.0;
+    for (final p in probs) {
+      if (p > 1e-9) h -= p * math.log(p);
+    }
+    return h;
+  }
+
   String _formatTopInsights(List<double> scores) {
-    final probs = _softmax(scores.map((e) => e.toDouble()).toList());
+    final probs = scores.map((e) => e.toDouble()).toList();
     final order = List<int>.generate(scores.length, (i) => i);
     order.sort((a, b) => probs[b].compareTo(probs[a]));
     final top = order.take(3).toList();
@@ -151,10 +162,34 @@ class ClassifierService {
         }
       }
 
+      // The TFLite model already has a softmax final layer, so scores are probabilities.
+      final probs = scores.map((e) => e.toDouble()).toList();
+      final entropyVal = _entropy(probs);
+
+      // Entropy guard: max entropy for 7 classes = ln(7) ≈ 1.946
+      // If entropy > 1.6, the model is too confused → likely NOT a banana leaf
+      if (entropyVal > 1.6) {
+        return {
+          'label': 'Not a Banana Leaf',
+          'confidence': '0%',
+          'raw_label': 'The image does not appear to be a banana leaf. Please capture a clear photo of a banana leaf.',
+        };
+      }
+
       final rawLabel = _labels[maxIndex] ?? 'Unknown';
       final clean = _cleanLabel(rawLabel);
       final confidencePct = (maxScore * 100).clamp(0.0, 100.0);
       final insights = scores.length >= 2 ? _formatTopInsights(scores) : '';
+
+      // Low-confidence guard: if model is less than 65% sure, don't guess
+      if (confidencePct < 65.0) {
+        return {
+          'label': 'Unable to Determine',
+          'confidence': '${confidencePct.toStringAsFixed(1)}%',
+          'raw_label': 'Low confidence — please retake photo with better lighting and focus on one clear leaf.',
+          if (insights.isNotEmpty) 'insights': insights,
+        };
+      }
 
       return {
         'label': clean,
