@@ -87,7 +87,10 @@ class _ScannerScreenState extends State<ScannerScreen>
     setState(() => _inferencing = false);
 
     try {
-      await ScanHistoryService.recordScan(result);
+      await ScanHistoryService.recordScan(
+        result,
+        imagePath: pickedFile.path,
+      );
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

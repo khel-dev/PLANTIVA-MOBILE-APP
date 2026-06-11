@@ -39,6 +39,8 @@ class AuthService {
     required String fullName,
     required String email,
     required String password,
+    String? contactNumber,
+    String? farmLocation,
   }) async {
     final credential = await _auth.createUserWithEmailAndPassword(
       email: email,
@@ -51,6 +53,12 @@ class AuthService {
       fullName: fullName,
       provider: 'password',
       photoUrl: credential.user!.photoURL,
+      extra: {
+        if ((contactNumber ?? '').trim().isNotEmpty)
+          'contactNumber': contactNumber!.trim(),
+        if ((farmLocation ?? '').trim().isNotEmpty)
+          'farmLocation': farmLocation!.trim(),
+      },
     );
   }
 

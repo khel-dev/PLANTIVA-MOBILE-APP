@@ -64,7 +64,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
               logoWithBackground: false,
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(24, 44, 24, 24),
+              padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
               child: Form(
                 key: _formKey,
                 child: Column(

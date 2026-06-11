@@ -22,4 +22,15 @@ class Validators {
     }
     return null;
   }
+
+  static String? phone(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'Please enter your contact number';
+    }
+    final digits = value.replaceAll(RegExp(r'\D'), '');
+    if (digits.length < 10 || digits.length > 13) {
+      return 'Enter a valid Philippine mobile number';
+    }
+    return null;
+  }
 }

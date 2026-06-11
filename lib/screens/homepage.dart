@@ -1,74 +1,19 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_plantiva/config/app_colors.dart';
+import 'package:flutter_plantiva/screens/crop_wellness_screen.dart';
+import 'package:flutter_plantiva/screens/disease_guide/disease_guide_screen.dart';
+import 'package:flutter_plantiva/screens/notifications_screen.dart';
 import 'package:flutter_plantiva/screens/profile.dart';
+import 'package:flutter_plantiva/screens/scan_analytics_screen.dart';
+import 'package:flutter_plantiva/screens/scan_history_screen.dart';
+import 'package:flutter_plantiva/models/scan_record.dart';
+import 'package:flutter_plantiva/services/scan_history_service.dart';
 import 'package:flutter_plantiva/screens/scanner_screen.dart';
-
-String _formatScanTime(Timestamp? t) {
-  if (t == null) return '';
-  final d = t.toDate();
-  const months = <String>[
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
-  String two(int n) => n.toString().padLeft(2, '0');
-  return '${months[d.month - 1]} ${d.day}, ${two(d.hour)}:${two(d.minute)}';
-}
-
-({Color chipColor, Color chipTextColor}) _chipsForScanLabel(String label) {
-  final l = label.toLowerCase();
-  if (l.contains('healthy')) {
-    return (
-      chipColor: const Color(0xFFE8F5E9),
-      chipTextColor: const Color(0xFF2E7D32),
-    );
-  }
-  if (l.contains('yellow sigatoka') || l.contains('sigatoka')) {
-    return (
-      chipColor: const Color(0xFFFFF9C4),
-      chipTextColor: const Color(0xFFF57F17),
-    );
-  }
-  if (l.contains('panama')) {
-    return (
-      chipColor: const Color(0xFFFFF3E0),
-      chipTextColor: const Color(0xFFEF6C00),
-    );
-  }
-  if (l.contains('moko')) {
-    return (
-      chipColor: const Color(0xFFFFEBEE),
-      chipTextColor: const Color(0xFFC62828),
-    );
-  }
-  if (l.contains('mosaic') || l.contains('virus')) {
-    return (
-      chipColor: const Color(0xFFF3E5F5),
-      chipTextColor: const Color(0xFF6A1B9A),
-    );
-  }
-  if (l.contains('insect')) {
-    return (
-      chipColor: const Color(0xFFE0F7FA),
-      chipTextColor: const Color(0xFF00695C),
-    );
-  }
-  return (
-    chipColor: const Color(0xFFFFEBEE),
-    chipTextColor: const Color(0xFFC62828),
-  );
-}
+import 'package:flutter_plantiva/utils/page_transitions.dart';
+import 'package:flutter_plantiva/widgets/recent_scan_card.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -159,7 +104,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       case 1:
         return const _SavedScansTab();
       case 2:
-        return const _DiseasesGuideTab();
+        return const DiseaseGuideScreen();
       case 3:
         return const ProfilePage();
       default:
@@ -177,7 +122,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const _TopGreeting(),
+              _TopGreeting(onProfileTap: () => setState(() => _tabIndex = 3)),
               const SizedBox(height: 14),
               const _HeroScanCard(),
               const SizedBox(height: 16),
@@ -195,9 +140,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   ),
                   const Spacer(),
                   TextButton(
-                    onPressed: () => setState(() => _tabIndex = 1),
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        AppTransitions.fadeSlide(const ScanHistoryScreen()),
+                      );
+                    },
                     child: const Text(
-                      'See all',
+                      'View all',
                       style: TextStyle(
                         color: AppColors.green,
                         fontWeight: FontWeight.w700,
@@ -218,7 +167,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 }
 
 class _TopGreeting extends StatelessWidget {
-  const _TopGreeting();
+  const _TopGreeting({required this.onProfileTap});
+
+  final VoidCallback onProfileTap;
 
   @override
   Widget build(BuildContext context) {
@@ -271,10 +222,8 @@ class _TopGreeting extends StatelessWidget {
             ),
             child: IconButton(
               onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Field alerts will appear here in a future update.'),
-                  ),
+                Navigator.of(context).push(
+                  AppTransitions.fadeSlide(const NotificationsScreen()),
                 );
               },
               icon: const Icon(
@@ -285,9 +234,23 @@ class _TopGreeting extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 10),
-          const CircleAvatar(
-            radius: 24,
-            backgroundImage: AssetImage('assets/images/plantiva_logo.png'),
+          StreamBuilder<DocumentSnapshot>(
+            stream: firestore.collection('users').doc(user?.uid).snapshots(),
+            builder: (context, snap) {
+              final photoUrl =
+                  (snap.data?.data() as Map<String, dynamic>?)?['photoUrl']
+                      as String?;
+              return GestureDetector(
+                onTap: onProfileTap,
+                child: CircleAvatar(
+                  radius: 24,
+                  backgroundImage: photoUrl != null && photoUrl.isNotEmpty
+                      ? CachedNetworkImageProvider(photoUrl)
+                      : const AssetImage('assets/images/profile_farmer.png')
+                          as ImageProvider,
+                ),
+              );
+            },
           ),
         ],
       ),
@@ -390,22 +353,38 @@ class _StatCard extends StatelessWidget {
     required this.icon,
     required this.value,
     required this.label,
+    this.onTap,
   });
 
   final IconData icon;
   final String value;
   final String label;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFD0E9D4), width: 2),
-      ),
-      child: Column(
+        child: Ink(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: const Color(0xFFD0E9D4), width: 2),
+            boxShadow: onTap != null
+                ? [
+                    BoxShadow(
+                      blurRadius: 10,
+                      color: Colors.black.withValues(alpha: 0.04),
+                      offset: const Offset(0, 4),
+                    ),
+                  ]
+                : null,
+          ),
+          child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
@@ -430,83 +409,29 @@ class _StatCard extends StatelessWidget {
             label,
             style: const TextStyle(color: Color(0xFF7B817E), fontSize: 14),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-class _RecentScanTile extends StatelessWidget {
-  const _RecentScanTile({
-    required this.title,
-    required this.subtitle,
-    required this.status,
-    required this.image,
-    required this.chipColor,
-    required this.chipTextColor,
-  });
-
-  final String title;
-  final String subtitle;
-  final String status;
-  final String image;
-  final Color chipColor;
-  final Color chipTextColor;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Image.asset(image, width: 64, height: 64, fit: BoxFit.cover),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          if (onTap != null) ...[
+            const SizedBox(height: 6),
+            Row(
               children: [
                 Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF232625),
+                  'View details',
+                  style: TextStyle(
+                    color: AppColors.green.withValues(alpha: 0.9),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: const TextStyle(
-                    color: Color(0xFF818683),
-                    fontSize: 13,
-                  ),
+                Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 11,
+                  color: AppColors.green.withValues(alpha: 0.9),
                 ),
               ],
             ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-            decoration: BoxDecoration(
-              color: chipColor,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Text(
-              status,
-              style: TextStyle(
-                color: chipTextColor,
-                fontWeight: FontWeight.w700,
-                fontSize: 13,
-              ),
-            ),
-          ),
+          ],
         ],
+          ),
+        ),
       ),
     );
   }
@@ -574,6 +499,13 @@ class _HomeStatsRow extends StatelessWidget {
                     icon: Icons.show_chart_rounded,
                     value: total.toString(),
                     label: 'Total Scans',
+                    onTap: () {
+                      Navigator.of(context).push(
+                        AppTransitions.fadeSlide(
+                          const ScanAnalyticsScreen(),
+                        ),
+                      );
+                    },
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -582,6 +514,13 @@ class _HomeStatsRow extends StatelessWidget {
                     icon: Icons.shield_outlined,
                     value: healthPct == null ? '—' : '$healthPct%',
                     label: 'Healthy (recent)',
+                    onTap: () {
+                      Navigator.of(context).push(
+                        AppTransitions.fadeSlide(
+                          const CropWellnessScreen(),
+                        ),
+                      );
+                    },
                   ),
                 ),
               ],
@@ -598,19 +537,8 @@ class _RecentScansFeed extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      return const _EmptyScansHint();
-    }
-
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .collection('scans')
-          .orderBy('createdAt', descending: true)
-          .limit(6)
-          .snapshots(),
+    return StreamBuilder<List<ScanRecord>>(
+      stream: ScanHistoryService.watchScans(limit: 5),
       builder: (context, snap) {
         if (snap.connectionState == ConnectionState.waiting) {
           return const Center(
@@ -620,76 +548,20 @@ class _RecentScansFeed extends StatelessWidget {
             ),
           );
         }
-        if (!snap.hasData || snap.data!.docs.isEmpty) {
-          return const _EmptyScansHint();
-        }
+        final scans = snap.data ?? [];
+        if (scans.isEmpty) return const RecentScansEmptyState();
 
         return Column(
-          children: snap.data!.docs.map((doc) {
-            final m = doc.data()! as Map<String, dynamic>;
-            final label = m['label'] as String? ?? 'Unknown';
-            final conf = m['confidence'] as String? ?? '';
-            final ts = m['createdAt'] as Timestamp?;
-            final chips = _chipsForScanLabel(label);
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: _RecentScanTile(
-                title: label,
-                subtitle: _formatScanTime(ts),
-                status: conf.isEmpty ? 'Done' : conf,
-                image: 'assets/images/banana_landing.jpg',
-                chipColor: chips.chipColor,
-                chipTextColor: chips.chipTextColor,
+          children: [
+            for (var i = 0; i < scans.length; i++)
+              RecentScanCard(
+                scan: scans[i],
+                animationDelay: i * 50,
+                enableSwipeDelete: false,
               ),
-            );
-          }).toList(),
+          ],
         );
       },
-    );
-  }
-}
-
-class _EmptyScansHint extends StatelessWidget {
-  const _EmptyScansHint();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFD0E9D4)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.eco_outlined, color: AppColors.green.withValues(alpha: 0.9)),
-              const SizedBox(width: 10),
-              const Text(
-                'No scans yet',
-                style: TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 17,
-                  color: Color(0xFF232625),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Use the center scan button to analyze a banana leaf. Results sync to your history automatically.',
-            style: TextStyle(
-              color: Colors.grey.shade700,
-              height: 1.45,
-              fontSize: 14,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -699,171 +571,69 @@ class _SavedScansTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Saved scans',
-            style: TextStyle(
-              fontWeight: FontWeight.w800,
-              fontSize: 28,
-              color: Color(0xFF202422),
-            ),
+          Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  'Saved scans',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 28,
+                    color: Color(0xFF202422),
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    AppTransitions.fadeSlide(const ScanHistoryScreen()),
+                  );
+                },
+                child: const Text(
+                  'View all',
+                  style: TextStyle(
+                    color: AppColors.green,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 6),
           Text(
-            'Stored in your Firebase account (label & confidence only).',
+            'Your complete diagnosis history with captured leaf images.',
             style: TextStyle(color: Colors.grey.shade700, fontSize: 14),
           ),
           const SizedBox(height: 16),
           Expanded(
-            child: user == null
-                ? const Center(child: Text('Sign in to view scans.'))
-                : StreamBuilder<QuerySnapshot>(
-                    stream: FirebaseFirestore.instance
-                        .collection('users')
-                        .doc(user.uid)
-                        .collection('scans')
-                        .orderBy('createdAt', descending: true)
-                        .limit(50)
-                        .snapshots(),
-                    builder: (context, snap) {
-                      if (!snap.hasData) {
-                        return const Center(child: CircularProgressIndicator());
-                      }
-                      if (snap.data!.docs.isEmpty) {
-                        return const Center(
-                          child: Text('No saved scans yet.'),
-                        );
-                      }
-                      return ListView.separated(
-                        itemCount: snap.data!.docs.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 10),
-                        itemBuilder: (context, i) {
-                          final m =
-                              snap.data!.docs[i].data() as Map<String, dynamic>;
-                          final label = m['label'] as String? ?? '';
-                          final conf = m['confidence'] as String? ?? '';
-                          final ts = m['createdAt'] as Timestamp?;
-                          final chips = _chipsForScanLabel(label);
-                          return _RecentScanTile(
-                            title: label,
-                            subtitle: _formatScanTime(ts),
-                            status: conf.isEmpty ? '—' : conf,
-                            image: 'assets/images/banana_login.jpg',
-                            chipColor: chips.chipColor,
-                            chipTextColor: chips.chipTextColor,
-                          );
-                        },
-                      );
-                    },
+            child: StreamBuilder<List<ScanRecord>>(
+              stream: ScanHistoryService.watchScans(limit: 50),
+              builder: (context, snap) {
+                if (!snap.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (snap.data!.isEmpty) {
+                  return const Center(child: RecentScansEmptyState());
+                }
+                return ListView.builder(
+                  itemCount: snap.data!.length,
+                  itemBuilder: (context, i) => RecentScanCard(
+                    scan: snap.data![i],
+                    animationDelay: (i % 5) * 40,
                   ),
+                );
+              },
+            ),
           ),
         ],
       ),
     );
   }
-}
-
-class _DiseasesGuideTab extends StatelessWidget {
-  const _DiseasesGuideTab();
-
-  @override
-  Widget build(BuildContext context) {
-    const items = <_GuideEntry>[
-      _GuideEntry(
-        'Black Sigatoka',
-        'Dark streaks and spots on leaves; reduces yield if untreated.',
-      ),
-      _GuideEntry(
-        'Yellow Sigatoka',
-        'Yellowish streaks — often appears before black sigatoka in the field.',
-      ),
-      _GuideEntry(
-        'Panama disease',
-        'Fusarium wilt — soil-borne; no chemical cure. Use clean planting material.',
-      ),
-      _GuideEntry(
-        'Moko disease',
-        'Bacterial wilt — destroy infected mats and disinfect tools.',
-      ),
-      _GuideEntry(
-        'Bract mosaic virus',
-        'Virus spread by aphids; mosaic patterns on bracts and leaves.',
-      ),
-      _GuideEntry(
-        'Insect pest damage',
-        'Chewing or stippling from thrips, weevils, or other pests.',
-      ),
-      _GuideEntry(
-        'Healthy leaf',
-        'Your model’s baseline — strong greens, minimal lesions.',
-      ),
-    ];
-
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 100),
-      children: [
-        const Text(
-          'Banana diseases',
-          style: TextStyle(
-            fontWeight: FontWeight.w800,
-            fontSize: 28,
-            color: Color(0xFF202422),
-          ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          'Quick reference for the classes your TFLite model predicts.',
-          style: TextStyle(color: Colors.grey.shade700, fontSize: 14),
-        ),
-        const SizedBox(height: 14),
-        for (final e in items) ...[
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFD0E9D4)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  e.title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 17,
-                    color: Color(0xFF1B4332),
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  e.blurb,
-                  style: TextStyle(
-                    color: Colors.grey.shade700,
-                    height: 1.45,
-                    fontSize: 14,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 10),
-        ],
-      ],
-    );
-  }
-}
-
-class _GuideEntry {
-  const _GuideEntry(this.title, this.blurb);
-  final String title;
-  final String blurb;
 }
 
 class _BottomNavBar extends StatelessWidget {

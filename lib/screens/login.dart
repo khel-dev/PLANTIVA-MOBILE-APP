@@ -44,21 +44,11 @@ class _LoginPageState extends State<LoginPage> {
         password: _password.text.trim(),
         rememberMe: _remember,
       );
-      if (!mounted) {
-        return;
-      }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            _remember
-                ? 'Login successful. You will stay signed in.'
-                : 'Login successful.',
-          ),
-        ),
+      if (!mounted) return;
+      Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+        MaterialPageRoute<void>(builder: (_) => const HomePage()),
+        (_) => false,
       );
-      Navigator.of(
-        context,
-      ).pushReplacement(AppTransitions.fadeSlide(const HomePage()));
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -70,20 +60,21 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _handleGoogleSignIn() async {
+    setState(() => _loading = true);
     try {
       await _authService.signInWithGoogle();
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Google sign-in successful.')),
+      Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+        MaterialPageRoute<void>(builder: (_) => const HomePage()),
+        (_) => false,
       );
-      Navigator.of(
-        context,
-      ).pushReplacement(AppTransitions.fadeSlide(const HomePage()));
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.message ?? 'Google sign-in failed.')),
       );
+    } finally {
+      if (mounted) setState(() => _loading = false);
     }
   }
 
@@ -102,7 +93,7 @@ class _LoginPageState extends State<LoginPage> {
               logoWithBackground: false,
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(24, 42, 24, 24),
+              padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
               child: Form(
                 key: _formKey,
                 child: Column(
@@ -237,7 +228,7 @@ class _LoginPageState extends State<LoginPage> {
                         minimumSize: const Size(double.infinity, 52),
                         side: BorderSide(color: Colors.grey.shade300),
                       ),
-                      onPressed: _handleGoogleSignIn,
+                      onPressed: _loading ? null : _handleGoogleSignIn,
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_plantiva/config/app_colors.dart';
 import 'package:flutter_plantiva/screens/login.dart';
+import 'package:flutter_plantiva/screens/registration.dart';
 import 'package:flutter_plantiva/utils/page_transitions.dart';
 import 'package:flutter_plantiva/widgets/logo_badge.dart';
 
@@ -102,7 +103,9 @@ class _LandingPageState extends State<LandingPage> {
                                 foregroundColor: AppColors.green,
                               ),
                               onPressed: () => Navigator.of(context).push(
-                                AppTransitions.fadeSlide(const LoginPage()),
+                                AppTransitions.fadeSlide(
+                                  const RegistrationPage(),
+                                ),
                               ),
                               child: const Text(
                                 'Get Started',

@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_plantiva/config/app_colors.dart';
 import 'package:flutter_plantiva/services/auth_service.dart';
 import 'package:flutter_plantiva/utils/validators.dart';
+import 'package:flutter_plantiva/screens/login.dart';
 import 'package:flutter_plantiva/widgets/header_image.dart';
 import 'package:flutter_plantiva/widgets/labeled_field.dart';
 
@@ -20,6 +21,8 @@ class _RegistrationPageState extends State<RegistrationPage> {
   final _email = TextEditingController();
   final _password = TextEditingController();
   final _confirm = TextEditingController();
+  final _contact = TextEditingController();
+  final _farmLocation = TextEditingController();
 
   bool _agreed = false;
   bool _hidePassword = true;
@@ -32,6 +35,8 @@ class _RegistrationPageState extends State<RegistrationPage> {
     _email.dispose();
     _password.dispose();
     _confirm.dispose();
+    _contact.dispose();
+    _farmLocation.dispose();
     super.dispose();
   }
 
@@ -53,6 +58,8 @@ class _RegistrationPageState extends State<RegistrationPage> {
         fullName: _name.text.trim(),
         email: _email.text.trim(),
         password: _password.text.trim(),
+        contactNumber: _contact.text.trim(),
+        farmLocation: _farmLocation.text.trim(),
       );
       if (!mounted) {
         return;
@@ -60,11 +67,13 @@ class _RegistrationPageState extends State<RegistrationPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Registration successful. Your account is saved in Firebase.',
+            'Account created! Sign in with your new credentials.',
           ),
         ),
       );
-      Navigator.of(context).pop();
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute<void>(builder: (_) => const LoginPage()),
+      );
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -89,7 +98,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
               logoWithBackground: false,
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(24, 42, 24, 30),
+              padding: const EdgeInsets.fromLTRB(24, 20, 24, 30),
               child: Form(
                 key: _formKey,
                 child: Container(
@@ -152,6 +161,29 @@ class _RegistrationPageState extends State<RegistrationPage> {
                             prefixIcon: Icon(Icons.mail_outline),
                           ),
                           validator: Validators.email,
+                        ),
+                      ),
+                      LabeledField(
+                        label: 'CONTACT NUMBER',
+                        child: TextFormField(
+                          controller: _contact,
+                          keyboardType: TextInputType.phone,
+                          decoration: const InputDecoration(
+                            hintText: '09XX XXX XXXX',
+                            prefixIcon: Icon(Icons.phone_outlined),
+                          ),
+                          validator: Validators.phone,
+                        ),
+                      ),
+                      LabeledField(
+                        label: 'FARM LOCATION (OPTIONAL)',
+                        child: TextFormField(
+                          controller: _farmLocation,
+                          textCapitalization: TextCapitalization.words,
+                          decoration: const InputDecoration(
+                            hintText: 'e.g. Davao del Norte',
+                            prefixIcon: Icon(Icons.location_on_outlined),
+                          ),
                         ),
                       ),
                       LabeledField(

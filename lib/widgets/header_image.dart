@@ -34,7 +34,7 @@ class HeaderImage extends StatelessWidget {
           ),
         ),
         Positioned(
-          bottom: -logoSize / 2.5,
+          bottom: curveHeight * 0.5,
           child: LogoBadge(size: logoSize, withBackground: logoWithBackground),
         ),
       ],
