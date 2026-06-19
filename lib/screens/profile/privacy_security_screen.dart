@@ -177,7 +177,11 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
             ),
             child: Row(
               children: [
-                Icon(Icons.shield_outlined, color: AppColors.green, size: 36),
+                const Icon(
+                  Icons.shield_outlined,
+                  color: AppColors.green,
+                  size: 36,
+                ),
                 const SizedBox(width: 14),
                 Expanded(
                   child: Text(
@@ -235,7 +239,8 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
                 padding: const EdgeInsets.all(16),
                 child: Row(
                   children: [
-                    Icon(Icons.delete_forever_outlined, color: Colors.red.shade700),
+                    Icon(Icons.delete_forever_outlined,
+                        color: Colors.red.shade700),
                     const SizedBox(width: 14),
                     Expanded(
                       child: Column(

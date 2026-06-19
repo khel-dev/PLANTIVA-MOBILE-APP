@@ -8,7 +8,8 @@ import 'package:tflite_flutter/tflite_flutter.dart';
 /// Offline TFLite classifier — same preprocessing as `PLANTIVA_CV/app.py`
 /// (RGB, 224×224, values / 255).
 class ClassifierService {
-  static const String _modelAsset = 'assets/models/plantiva_banana_model.tflite';
+  static const String _modelAsset =
+      'assets/models/plantiva_banana_model.tflite';
   static const String _labelsAsset = 'assets/models/labels.json';
 
   Interpreter? _interpreter;
@@ -20,15 +21,6 @@ class ClassifierService {
   int get classCount => _labels.length;
 
   String? get loadError => _loadError;
-
-  List<double> _softmax(List<double> logits) {
-    if (logits.isEmpty) return [];
-    final maxL = logits.reduce(math.max);
-    final exps = logits.map((z) => math.exp(z - maxL)).toList();
-    final sum = exps.fold<double>(0, (a, b) => a + b);
-    if (sum == 0) return List<double>.filled(logits.length, 1 / logits.length);
-    return exps.map((e) => e / sum).toList();
-  }
 
   /// Computes Shannon entropy of a probability distribution.
   /// High entropy = model is confused / guessing = likely NOT a banana leaf.
@@ -137,9 +129,8 @@ class ClassifierService {
         };
       }
 
-      final rgb = decoded.numChannels == 3
-          ? decoded
-          : decoded.convert(numChannels: 3);
+      final rgb =
+          decoded.numChannels == 3 ? decoded : decoded.convert(numChannels: 3);
       final resized = img.copyResize(rgb, width: 224, height: 224);
 
       final input = _imageToInputNHWC(resized);
@@ -172,7 +163,8 @@ class ClassifierService {
         return {
           'label': 'Not a Banana Leaf',
           'confidence': '0%',
-          'raw_label': 'The image does not appear to be a banana leaf. Please capture a clear photo of a banana leaf.',
+          'raw_label':
+              'The image does not appear to be a banana leaf. Please capture a clear photo of a banana leaf.',
         };
       }
 
@@ -186,7 +178,8 @@ class ClassifierService {
         return {
           'label': 'Unable to Determine',
           'confidence': '${confidencePct.toStringAsFixed(1)}%',
-          'raw_label': 'Low confidence — please retake photo with better lighting and focus on one clear leaf.',
+          'raw_label':
+              'Low confidence — please retake photo with better lighting and focus on one clear leaf.',
           if (insights.isNotEmpty) 'insights': insights,
         };
       }

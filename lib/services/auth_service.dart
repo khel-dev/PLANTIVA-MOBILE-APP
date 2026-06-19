@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 class AuthService {
@@ -23,15 +26,20 @@ class AuthService {
       email: email,
       password: password,
     );
-    await _upsertUserProfile(
-      uid: credential.user!.uid,
-      email: credential.user!.email ?? email,
-      fullName: credential.user!.displayName?.trim().isNotEmpty == true
-          ? credential.user!.displayName!
-          : 'Plantiva User',
-      provider: 'password',
-      photoUrl: credential.user!.photoURL,
-      extra: {'rememberMe': rememberMe},
+    unawaited(
+      _upsertUserProfile(
+        uid: credential.user!.uid,
+        email: credential.user!.email ?? email,
+        fullName: credential.user!.displayName?.trim().isNotEmpty == true
+            ? credential.user!.displayName!
+            : 'Plantiva User',
+        provider: 'password',
+        photoUrl: credential.user!.photoURL,
+        extra: {'rememberMe': rememberMe},
+      ).catchError((Object e, StackTrace stackTrace) {
+        debugPrint('User profile sync after login failed: $e');
+        debugPrintStack(stackTrace: stackTrace);
+      }),
     );
   }
 
@@ -90,14 +98,19 @@ class AuthService {
       idToken: googleAuth.idToken,
     );
     final userCredential = await _auth.signInWithCredential(credential);
-    await _upsertUserProfile(
-      uid: userCredential.user!.uid,
-      email: userCredential.user!.email ?? googleUser.email,
-      fullName: userCredential.user!.displayName?.trim().isNotEmpty == true
-          ? userCredential.user!.displayName!
-          : (googleUser.displayName ?? 'Plantiva User'),
-      provider: 'google',
-      photoUrl: userCredential.user!.photoURL ?? googleUser.photoUrl,
+    unawaited(
+      _upsertUserProfile(
+        uid: userCredential.user!.uid,
+        email: userCredential.user!.email ?? googleUser.email,
+        fullName: userCredential.user!.displayName?.trim().isNotEmpty == true
+            ? userCredential.user!.displayName!
+            : (googleUser.displayName ?? 'Plantiva User'),
+        provider: 'google',
+        photoUrl: userCredential.user!.photoURL ?? googleUser.photoUrl,
+      ).catchError((Object e, StackTrace stackTrace) {
+        debugPrint('User profile sync after Google login failed: $e');
+        debugPrintStack(stackTrace: stackTrace);
+      }),
     );
     return userCredential;
   }
@@ -133,7 +146,7 @@ class AuthService {
   Future<Map<String, dynamic>?> getCurrentUserProfile() async {
     final user = _auth.currentUser;
     if (user == null) return null;
-    
+
     final snapshot = await _firestore.collection('users').doc(user.uid).get();
     return snapshot.data();
   }

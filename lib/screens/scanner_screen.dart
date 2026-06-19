@@ -86,11 +86,19 @@ class _ScannerScreenState extends State<ScannerScreen>
     if (!mounted) return;
     setState(() => _inferencing = false);
 
+    String? savedScanId;
     try {
-      await ScanHistoryService.recordScan(
+      savedScanId = await ScanHistoryService.recordScan(
         result,
         imagePath: pickedFile.path,
       );
+      if (savedScanId == null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Scan worked, but it was not saved to history.'),
+          ),
+        );
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -110,6 +118,7 @@ class _ScannerScreenState extends State<ScannerScreen>
         pageBuilder: (_, __, ___) => ResultScreen(
           imagePath: pickedFile.path,
           result: result,
+          savedScanId: savedScanId,
         ),
         transitionsBuilder: (_, animation, __, child) {
           return FadeTransition(
@@ -301,8 +310,7 @@ class _ScannerScreenState extends State<ScannerScreen>
                     children: [
                       IconButton.filledTonal(
                         style: IconButton.styleFrom(
-                          backgroundColor:
-                              Colors.white.withValues(alpha: 0.12),
+                          backgroundColor: Colors.white.withValues(alpha: 0.12),
                         ),
                         onPressed: () => Navigator.pop(context),
                         icon: const Icon(Icons.close_rounded,
@@ -327,8 +335,7 @@ class _ScannerScreenState extends State<ScannerScreen>
                       const Spacer(),
                       IconButton.filledTonal(
                         style: IconButton.styleFrom(
-                          backgroundColor:
-                              Colors.white.withValues(alpha: 0.12),
+                          backgroundColor: Colors.white.withValues(alpha: 0.12),
                         ),
                         onPressed: _showModelSheet,
                         icon: const Icon(Icons.info_outline_rounded,
@@ -337,7 +344,6 @@ class _ScannerScreenState extends State<ScannerScreen>
                     ],
                   ),
                 ),
-
                 Padding(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
@@ -360,8 +366,8 @@ class _ScannerScreenState extends State<ScannerScreen>
                           children: [
                             Icon(
                               Icons.offline_bolt_rounded,
-                              color: AppColors.brightGreen
-                                  .withValues(alpha: 0.95),
+                              color:
+                                  AppColors.brightGreen.withValues(alpha: 0.95),
                               size: 22,
                             ),
                             const SizedBox(width: 12),
@@ -390,7 +396,6 @@ class _ScannerScreenState extends State<ScannerScreen>
                     ),
                   ),
                 ),
-
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(22, 12, 22, 8),
@@ -419,15 +424,15 @@ class _ScannerScreenState extends State<ScannerScreen>
                                   decoration: BoxDecoration(
                                     border: Border.all(
                                       color: AppColors.brightGreen.withValues(
-                                          alpha: 0.25 + 0.35 * _pulseAnim.value),
+                                          alpha:
+                                              0.25 + 0.35 * _pulseAnim.value),
                                       width: 2,
                                     ),
                                     borderRadius: BorderRadius.circular(28),
                                   ),
                                 ),
                                 Container(
-                                  color:
-                                      Colors.black.withValues(alpha: 0.35),
+                                  color: Colors.black.withValues(alpha: 0.35),
                                 ),
                                 // Sweep line
                                 LayoutBuilder(
@@ -446,8 +451,8 @@ class _ScannerScreenState extends State<ScannerScreen>
                                           gradient: LinearGradient(
                                             colors: [
                                               Colors.transparent,
-                                              AppColors.brightGreen.withValues(
-                                                  alpha: 0.9),
+                                              AppColors.brightGreen
+                                                  .withValues(alpha: 0.9),
                                               Colors.transparent,
                                             ],
                                           ),
@@ -515,7 +520,6 @@ class _ScannerScreenState extends State<ScannerScreen>
                     ),
                   ),
                 ),
-
                 Padding(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 28, vertical: 8),
@@ -529,7 +533,6 @@ class _ScannerScreenState extends State<ScannerScreen>
                     ),
                   ),
                 ),
-
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 4, 20, 28),
                   child: Row(
@@ -542,8 +545,7 @@ class _ScannerScreenState extends State<ScannerScreen>
                         onTap: () => _pickImage(ImageSource.gallery),
                       ),
                       _ShutterButton(
-                        enabled:
-                            _phase == _ModelPhase.ready && !_inferencing,
+                        enabled: _phase == _ModelPhase.ready && !_inferencing,
                         onTap: () => _pickImage(ImageSource.camera),
                       ),
                       _RoundAction(
@@ -608,7 +610,9 @@ class _StatusChip extends StatelessWidget {
             )
           else
             Icon(
-              phase == _ModelPhase.ready ? Icons.verified_rounded : Icons.error_outline,
+              phase == _ModelPhase.ready
+                  ? Icons.verified_rounded
+                  : Icons.error_outline,
               size: 14,
               color: fg,
             ),

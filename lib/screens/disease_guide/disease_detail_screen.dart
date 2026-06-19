@@ -175,7 +175,8 @@ class _DiseaseDetailScreenState extends State<DiseaseDetailScreen> {
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Icon(Icons.warning_amber_rounded, color: d.risk.color),
+                            Icon(Icons.warning_amber_rounded,
+                                color: d.risk.color),
                             const SizedBox(width: 10),
                             Expanded(
                               child: Text(
@@ -416,7 +417,7 @@ class _DiseaseDetailScreenState extends State<DiseaseDetailScreen> {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
+        gradient: const LinearGradient(
           colors: [
             Colors.white,
             AppColors.lightBackground,
@@ -433,7 +434,8 @@ class _DiseaseDetailScreenState extends State<DiseaseDetailScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(c.title, style: const TextStyle(fontWeight: FontWeight.w800)),
+                Text(c.title,
+                    style: const TextStyle(fontWeight: FontWeight.w800)),
                 Text(
                   c.description,
                   style: TextStyle(color: Colors.grey.shade700, fontSize: 13),

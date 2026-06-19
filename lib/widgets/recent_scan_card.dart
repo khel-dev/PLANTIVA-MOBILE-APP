@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_plantiva/config/app_colors.dart';
 import 'package:flutter_plantiva/models/scan_record.dart';
 import 'package:flutter_plantiva/screens/scan_details_screen.dart';
+import 'package:flutter_plantiva/screens/treatment_recommendation_screen.dart';
 import 'package:flutter_plantiva/services/scan_history_service.dart';
 import 'package:flutter_plantiva/utils/page_transitions.dart';
 import 'package:flutter_plantiva/widgets/scan_image_widget.dart';
@@ -81,6 +82,26 @@ class _RecentScanCardState extends State<RecentScanCard>
     Navigator.of(context).push(
       AppTransitions.fadeSlide(
         ScanDetailsScreen(scan: widget.scan),
+      ),
+    );
+  }
+
+  void _openRecommendations() {
+    HapticFeedback.selectionClick();
+    final scan = widget.scan;
+    Navigator.of(context).push(
+      AppTransitions.fadeSlide(
+        TreatmentRecommendationScreen(
+          label: scan.label,
+          confidence: scan.confidence,
+          severity: scan.effectiveSeverity,
+          summary: scan.effectiveSummary,
+          recommendation: scan.effectiveRecommendations,
+          isHealthy: scan.isHealthy,
+          imagePath: scan.imagePath,
+          imageUrl: scan.imageUrl,
+          savedScanId: scan.id,
+        ),
       ),
     );
   }
@@ -190,9 +211,7 @@ class _RecentScanCardState extends State<RecentScanCard>
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              scan.confidence.isEmpty
-                                  ? '—'
-                                  : scan.confidence,
+                              scan.confidence.isEmpty ? '—' : scan.confidence,
                               style: const TextStyle(
                                 fontWeight: FontWeight.w700,
                                 fontSize: 12,
@@ -200,6 +219,24 @@ class _RecentScanCardState extends State<RecentScanCard>
                               ),
                             ),
                           ],
+                        ),
+                        const SizedBox(height: 8),
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: TextButton.icon(
+                            onPressed: _openRecommendations,
+                            style: TextButton.styleFrom(
+                              visualDensity: VisualDensity.compact,
+                              padding: EdgeInsets.zero,
+                              minimumSize: const Size(0, 30),
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
+                            icon: const Icon(
+                              Icons.medical_services_outlined,
+                              size: 16,
+                            ),
+                            label: const Text('Recommendations'),
+                          ),
                         ),
                       ],
                     ),

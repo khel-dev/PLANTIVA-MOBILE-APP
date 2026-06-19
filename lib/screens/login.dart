@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_plantiva/config/app_colors.dart';
@@ -21,16 +23,41 @@ class _LoginPageState extends State<LoginPage> {
   final _authService = AuthService();
   final _email = TextEditingController();
   final _password = TextEditingController();
+  StreamSubscription<User?>? _authSubscription;
 
   bool _remember = true;
   bool _hidePassword = true;
   bool _loading = false;
+  bool _navigatingHome = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _authSubscription = FirebaseAuth.instance.authStateChanges().listen((user) {
+      if (user != null) {
+        _goHome();
+      }
+    });
+  }
 
   @override
   void dispose() {
+    _authSubscription?.cancel();
     _email.dispose();
     _password.dispose();
     super.dispose();
+  }
+
+  void _goHome() {
+    if (!mounted || _navigatingHome) return;
+    _navigatingHome = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+        MaterialPageRoute<void>(builder: (_) => const HomePage()),
+        (_) => false,
+      );
+    });
   }
 
   Future<void> _submit() async {
@@ -44,18 +71,27 @@ class _LoginPageState extends State<LoginPage> {
         password: _password.text.trim(),
         rememberMe: _remember,
       );
-      if (!mounted) return;
-      Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
-        MaterialPageRoute<void>(builder: (_) => const HomePage()),
-        (_) => false,
-      );
+      _goHome();
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
+      if (FirebaseAuth.instance.currentUser != null) {
+        _goHome();
+        return;
+      }
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(e.message ?? 'Login failed.')));
+    } catch (e) {
+      if (!mounted) return;
+      if (FirebaseAuth.instance.currentUser != null) {
+        _goHome();
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Login failed. Please try again. ($e)')),
+      );
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted && !_navigatingHome) setState(() => _loading = false);
     }
   }
 
@@ -63,18 +99,28 @@ class _LoginPageState extends State<LoginPage> {
     setState(() => _loading = true);
     try {
       await _authService.signInWithGoogle();
-      if (!mounted) return;
-      Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
-        MaterialPageRoute<void>(builder: (_) => const HomePage()),
-        (_) => false,
-      );
+      _goHome();
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
+      if (FirebaseAuth.instance.currentUser != null) {
+        _goHome();
+        return;
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.message ?? 'Google sign-in failed.')),
       );
+    } catch (e) {
+      if (!mounted) return;
+      if (FirebaseAuth.instance.currentUser != null) {
+        _goHome();
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text('Google sign-in failed. Please try again. ($e)')),
+      );
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted && !_navigatingHome) setState(() => _loading = false);
     }
   }
 

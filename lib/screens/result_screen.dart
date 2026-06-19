@@ -1,15 +1,18 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_plantiva/screens/treatment_recommendation_screen.dart';
 
 class ResultScreen extends StatelessWidget {
   final String imagePath;
   final Map<String, String> result;
+  final String? savedScanId;
 
   const ResultScreen({
     super.key,
     required this.imagePath,
     required this.result,
+    this.savedScanId,
   });
 
   String _getSeverity(String label, String confidence) {
@@ -154,11 +157,11 @@ class ResultScreen extends StatelessWidget {
                               customBorder: const CircleBorder(),
                               onTap: () async {
                                 final label = result['label'] ?? 'Unknown';
-                                final confidence =
-                                    result['confidence'] ?? '0%';
+                                final confidence = result['confidence'] ?? '0%';
                                 final text =
                                     'Plantiva diagnosis\n$label\nConfidence: $confidence';
-                                await Clipboard.setData(ClipboardData(text: text));
+                                await Clipboard.setData(
+                                    ClipboardData(text: text));
                                 if (!context.mounted) return;
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
@@ -327,8 +330,7 @@ class ResultScreen extends StatelessWidget {
                                                 value: confidenceValue / 100,
                                                 backgroundColor:
                                                     Colors.grey[200],
-                                                color:
-                                                    const Color(0xFF2E7D32),
+                                                color: const Color(0xFF2E7D32),
                                                 minHeight: 5,
                                               ),
                                             ),
@@ -504,20 +506,25 @@ class ResultScreen extends StatelessWidget {
                             width: double.infinity,
                             child: ElevatedButton.icon(
                               onPressed: () {
-                                showModalBottomSheet(
-                                  context: context,
-                                  backgroundColor: Colors.transparent,
-                                  isScrollControlled: true,
-                                  builder: (_) => _TreatmentBottomSheet(
-                                    label: label,
-                                    recommendation:
-                                        _getRecommendation(label),
-                                    isHealthy: isHealthy,
+                                Navigator.of(context).push(
+                                  MaterialPageRoute<void>(
+                                    builder: (_) =>
+                                        TreatmentRecommendationScreen(
+                                      imagePath: imagePath,
+                                      label: label,
+                                      confidence: confidence,
+                                      severity: severity,
+                                      summary: _getAboutCondition(label),
+                                      recommendation: _getRecommendation(label),
+                                      isHealthy: isHealthy,
+                                      savedScanId: savedScanId,
+                                    ),
                                   ),
                                 );
                               },
                               icon: const Icon(Icons.medical_services_outlined),
-                              label: const Text('View Treatment Recommendations'),
+                              label:
+                                  const Text('View Treatment Recommendations'),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFF1B4332),
                                 foregroundColor: Colors.white,
@@ -565,19 +572,29 @@ class ResultScreen extends StatelessWidget {
                               Expanded(
                                 child: ElevatedButton.icon(
                                   onPressed: () {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                          'This scan is already in your Firebase history (Saved tab).',
+                                    if (savedScanId == null) {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            'This scan was not saved. Please check your connection or Firestore rules.',
+                                          ),
                                         ),
-                                        backgroundColor: Color(0xFF2E7D32),
-                                      ),
-                                    );
+                                      );
+                                    }
                                   },
-                                  icon: const Icon(Icons.bookmark_outline),
-                                  label: const Text('Save Result'),
+                                  icon: Icon(
+                                    savedScanId == null
+                                        ? Icons.bookmark_border
+                                        : Icons.bookmark_added,
+                                  ),
+                                  label: Text(
+                                    savedScanId == null ? 'Not Saved' : 'Saved',
+                                  ),
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF2E7D32),
+                                    backgroundColor: savedScanId == null
+                                        ? Colors.grey.shade700
+                                        : const Color(0xFF2E7D32),
                                     foregroundColor: Colors.white,
                                     padding: const EdgeInsets.symmetric(
                                       vertical: 14,
@@ -605,107 +622,3 @@ class ResultScreen extends StatelessWidget {
     );
   }
 }
-
-class _TreatmentBottomSheet extends StatelessWidget {
-  final String label;
-  final String recommendation;
-  final bool isHealthy;
-
-  const _TreatmentBottomSheet({
-    required this.label,
-    required this.recommendation,
-    required this.isHealthy,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(24),
-          topRight: Radius.circular(24),
-        ),
-      ),
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Center(
-            child: Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          ),
-          const SizedBox(height: 20),
-          Row(
-            children: [
-              const Icon(
-                Icons.medical_services_outlined,
-                color: Color(0xFF2E7D32),
-              ),
-              const SizedBox(width: 8),
-              const Text(
-                'Treatment Recommendations',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF1B1B1B),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            style: TextStyle(
-              color: Colors.grey[500],
-              fontSize: 13,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF1F8E9),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Text(
-              recommendation,
-              style: const TextStyle(
-                fontSize: 14,
-                height: 1.8,
-                color: Color(0xFF2E7D32),
-              ),
-            ),
-          ),
-          const SizedBox(height: 20),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () => Navigator.pop(context),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1B4332),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-              ),
-              child: const Text(
-                'Got it!',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-        ],
-      ),
-    );
-  }
-} 
