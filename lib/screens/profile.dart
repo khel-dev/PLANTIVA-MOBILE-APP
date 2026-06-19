@@ -103,7 +103,8 @@ class _ProfilePageState extends State<ProfilePage>
                   },
                   isDestructive: true,
                 ),
-              _sheetOption(ctx, Icons.close, 'Cancel', () => Navigator.pop(ctx)),
+              _sheetOption(
+                  ctx, Icons.close, 'Cancel', () => Navigator.pop(ctx)),
             ],
           ),
         ),
@@ -147,16 +148,25 @@ class _ProfilePageState extends State<ProfilePage>
 
               final userData =
                   snapshot.data?.data() as Map<String, dynamic>? ?? {};
-              final fullName =
-                  userData['fullName'] as String? ?? 'Plantiva User';
+              final storedName = (userData['fullName'] as String?)?.trim();
+              final authName =
+                  FirebaseAuth.instance.currentUser?.displayName?.trim();
+              final fullName = storedName?.isNotEmpty == true
+                  ? storedName!
+                  : authName?.isNotEmpty == true
+                      ? authName!
+                      : 'Plantiva User';
               final email = userData['email'] as String? ??
                   FirebaseAuth.instance.currentUser?.email ??
                   '';
-              final contact = userData['contactNumber'] as String? ?? '';
-              final location = userData['farmLocation'] as String? ?? '';
+              final contact = userData['phoneNumber'] as String? ??
+                  userData['contactNumber'] as String? ??
+                  '';
+              final location = userData['location'] as String? ??
+                  userData['farmLocation'] as String? ??
+                  '';
               final photoUrl = userData['photoUrl'] as String?;
-              final totalScans =
-                  (userData['totalScans'] as num?)?.toInt() ?? 0;
+              final totalScans = (userData['totalScans'] as num?)?.toInt() ?? 0;
 
               return SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
@@ -256,8 +266,7 @@ class _ProfilePageState extends State<ProfilePage>
                             ),
                             actions: [
                               TextButton(
-                                onPressed: () =>
-                                    Navigator.pop(dialogContext),
+                                onPressed: () => Navigator.pop(dialogContext),
                                 child: const Text('Cancel'),
                               ),
                               TextButton(
@@ -560,7 +569,8 @@ class _ProfileInfoCardState extends State<_ProfileInfoCard> {
     );
   }
 
-  Widget _field(String label, TextEditingController c, {required bool enabled}) {
+  Widget _field(String label, TextEditingController c,
+      {required bool enabled}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: TextField(

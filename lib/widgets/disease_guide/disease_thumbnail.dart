@@ -18,6 +18,23 @@ class DiseaseThumbnail extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (disease.imageUrl.startsWith('assets/')) {
+      final image = ClipRRect(
+        borderRadius: BorderRadius.circular(borderRadius),
+        child: Image.asset(
+          disease.imageUrl,
+          height: height,
+          width: double.infinity,
+          fit: BoxFit.cover,
+        ),
+      );
+
+      if (heroTag != null) {
+        return Hero(tag: heroTag!, child: image);
+      }
+      return image;
+    }
+
     final image = ClipRRect(
       borderRadius: BorderRadius.circular(borderRadius),
       child: CachedNetworkImage(

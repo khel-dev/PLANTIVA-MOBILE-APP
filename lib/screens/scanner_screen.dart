@@ -1,12 +1,10 @@
-import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_plantiva/config/app_colors.dart';
 import '../services/classifier_service.dart';
-import '../services/scan_history_service.dart';
-import 'result_screen.dart';
+import 'scan_loading_screen.dart';
 
 enum _ModelPhase { loading, ready, error }
 
@@ -26,7 +24,7 @@ class _ScannerScreenState extends State<ScannerScreen>
   late final Animation<double> _sweepAnim;
 
   _ModelPhase _phase = _ModelPhase.loading;
-  bool _inferencing = false;
+  final bool _inferencing = false;
 
   @override
   void initState() {
@@ -78,47 +76,13 @@ class _ScannerScreenState extends State<ScannerScreen>
 
     if (pickedFile == null || !mounted) return;
 
-    setState(() => _inferencing = true);
     HapticFeedback.lightImpact();
-
-    final result = await _classifier.classify(File(pickedFile.path));
-
-    if (!mounted) return;
-    setState(() => _inferencing = false);
-
-    String? savedScanId;
-    try {
-      savedScanId = await ScanHistoryService.recordScan(
-        result,
-        imagePath: pickedFile.path,
-      );
-      if (savedScanId == null && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Scan worked, but it was not saved to history.'),
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Scan worked, but cloud save failed (check Firestore rules): $e',
-            ),
-          ),
-        );
-      }
-    }
-
-    if (!mounted) return;
     await Navigator.push<void>(
       context,
       PageRouteBuilder<void>(
-        pageBuilder: (_, __, ___) => ResultScreen(
+        pageBuilder: (_, __, ___) => ScanLoadingScreen(
           imagePath: pickedFile.path,
-          result: result,
-          savedScanId: savedScanId,
+          classifier: _classifier,
         ),
         transitionsBuilder: (_, animation, __, child) {
           return FadeTransition(

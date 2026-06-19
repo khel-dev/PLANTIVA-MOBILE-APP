@@ -30,9 +30,7 @@ class AuthService {
       _upsertUserProfile(
         uid: credential.user!.uid,
         email: credential.user!.email ?? email,
-        fullName: credential.user!.displayName?.trim().isNotEmpty == true
-            ? credential.user!.displayName!
-            : 'Plantiva User',
+        fullName: credential.user!.displayName?.trim(),
         provider: 'password',
         photoUrl: credential.user!.photoURL,
         extra: {'rememberMe': rememberMe},
@@ -50,23 +48,49 @@ class AuthService {
     String? contactNumber,
     String? farmLocation,
   }) async {
+    final cleanName = fullName.trim();
+    final cleanEmail = email.trim();
+    final cleanPhone = (contactNumber ?? '').trim();
+    final cleanLocation = (farmLocation ?? '').trim();
+
     final credential = await _auth.createUserWithEmailAndPassword(
-      email: email,
+      email: cleanEmail,
       password: password,
     );
-    await credential.user?.updateDisplayName(fullName);
+    final user = credential.user;
+    if (user == null) {
+      throw FirebaseAuthException(
+        code: 'registration-user-missing',
+        message: 'Account was created, but the user session was not returned.',
+      );
+    }
+
+    if (cleanName.isNotEmpty) {
+      try {
+        await user.updateDisplayName(cleanName).timeout(
+              const Duration(seconds: 8),
+            );
+      } catch (e, stackTrace) {
+        debugPrint(
+            'FirebaseAuth displayName update after registration failed: $e');
+        debugPrintStack(stackTrace: stackTrace);
+      }
+    }
+
     await _upsertUserProfile(
-      uid: credential.user!.uid,
-      email: email,
-      fullName: fullName,
+      uid: user.uid,
+      email: user.email ?? cleanEmail,
+      fullName: cleanName,
       provider: 'password',
-      photoUrl: credential.user!.photoURL,
+      photoUrl: user.photoURL,
       extra: {
-        if ((contactNumber ?? '').trim().isNotEmpty)
-          'contactNumber': contactNumber!.trim(),
-        if ((farmLocation ?? '').trim().isNotEmpty)
-          'farmLocation': farmLocation!.trim(),
+        'phoneNumber': cleanPhone,
+        'location': cleanLocation,
+        'contactNumber': cleanPhone,
+        'farmLocation': cleanLocation,
       },
+    ).timeout(
+      const Duration(seconds: 12),
     );
   }
 
@@ -118,23 +142,28 @@ class AuthService {
   Future<void> _upsertUserProfile({
     required String uid,
     required String email,
-    required String fullName,
+    required String? fullName,
     required String provider,
     String? photoUrl,
     Map<String, dynamic>? extra,
   }) async {
     final userRef = _firestore.collection('users').doc(uid);
     final now = FieldValue.serverTimestamp();
-    await userRef.set({
+    final cleanName = fullName?.trim();
+    final data = <String, dynamic>{
       'uid': uid,
       'email': email,
-      'fullName': fullName,
       'provider': provider,
       'photoUrl': photoUrl,
       'updatedAt': now,
       'lastLoginAt': now,
       ...?extra,
-    }, SetOptions(merge: true));
+    };
+    if (cleanName != null && cleanName.isNotEmpty) {
+      data['fullName'] = cleanName;
+    }
+
+    await userRef.set(data, SetOptions(merge: true));
     final snapshot = await userRef.get();
     if (!snapshot.exists || snapshot.data()?['createdAt'] == null) {
       await userRef.set({'createdAt': now}, SetOptions(merge: true));

@@ -1,9 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_plantiva/config/app_colors.dart';
+import 'package:flutter_plantiva/screens/homepage.dart';
 import 'package:flutter_plantiva/services/auth_service.dart';
 import 'package:flutter_plantiva/utils/validators.dart';
-import 'package:flutter_plantiva/screens/login.dart';
 import 'package:flutter_plantiva/widgets/header_image.dart';
 import 'package:flutter_plantiva/widgets/labeled_field.dart';
 
@@ -23,14 +25,27 @@ class _RegistrationPageState extends State<RegistrationPage> {
   final _confirm = TextEditingController();
   final _contact = TextEditingController();
   final _farmLocation = TextEditingController();
+  StreamSubscription<User?>? _authSubscription;
 
   bool _agreed = false;
   bool _hidePassword = true;
   bool _hideConfirm = true;
   bool _loading = false;
+  bool _navigatingHome = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _authSubscription = FirebaseAuth.instance.authStateChanges().listen((user) {
+      if (user != null) {
+        _goHome();
+      }
+    });
+  }
 
   @override
   void dispose() {
+    _authSubscription?.cancel();
     _name.dispose();
     _email.dispose();
     _password.dispose();
@@ -38,6 +53,18 @@ class _RegistrationPageState extends State<RegistrationPage> {
     _contact.dispose();
     _farmLocation.dispose();
     super.dispose();
+  }
+
+  void _goHome() {
+    if (!mounted || _navigatingHome) return;
+    _navigatingHome = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+        MaterialPageRoute<void>(builder: (_) => const HomePage()),
+        (_) => false,
+      );
+    });
   }
 
   Future<void> _register() async {
@@ -66,21 +93,30 @@ class _RegistrationPageState extends State<RegistrationPage> {
       }
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
-            'Account created! Sign in with your new credentials.',
-          ),
+          content: Text('Account created. Welcome to PLANTIVA!'),
         ),
       );
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute<void>(builder: (_) => const LoginPage()),
-      );
+      _goHome();
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
+      if (FirebaseAuth.instance.currentUser != null) {
+        _goHome();
+        return;
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.message ?? 'Registration failed.')),
       );
+    } catch (e) {
+      if (!mounted) return;
+      if (FirebaseAuth.instance.currentUser != null) {
+        _goHome();
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Registration failed. Please try again. ($e)')),
+      );
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted && !_navigatingHome) setState(() => _loading = false);
     }
   }
 

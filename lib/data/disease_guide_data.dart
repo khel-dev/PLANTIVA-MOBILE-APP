@@ -2,19 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_plantiva/models/disease_guide.dart';
 
 /// Educational disease content aligned with PLANTIVA's TFLite model classes.
-/// Images: Wikimedia Commons (educational, publicly licensed).
+/// Educational disease content aligned with PLANTIVA's local image assets.
 class DiseaseGuideData {
   static const _fallback = 'assets/images/banana_landing.jpg';
 
   static const all = <DiseaseGuideItem>[
-  blackSigatoka,
-  bractMosaic,
-  healthyLeaf,
-  insectPest,
-  moko,
-  panama,
-  yellowSigatoka,
-];
+    blackSigatoka,
+    bractMosaic,
+    healthyLeaf,
+    insectPest,
+    moko,
+    panama,
+    yellowSigatoka,
+  ];
 
   static DiseaseGuideItem? byId(String id) {
     try {
@@ -30,8 +30,7 @@ class DiseaseGuideData {
     shortName: 'Black Sigatoka',
     category: DiseaseCategory.fungal,
     risk: DiseaseRisk.high,
-    imageUrl:
-        'https://upload.wikimedia.org/wikipedia/commons/9/9a/Banana_leaf_showing_symptoms_of_Black_sigatoka_disease.jpg',
+    imageUrl: 'assets/images/black_sigatoka.jpg',
     fallbackAsset: _fallback,
     summary:
         'A destructive fungal leaf spot disease that reduces photosynthesis and can cut banana yields by 50% or more.',
@@ -42,17 +41,20 @@ class DiseaseGuideData {
     symptoms: [
       DiseaseSymptom(
         title: 'Dark streaks',
-        description: 'Thin dark lines on the underside of leaves that widen over time.',
+        description:
+            'Thin dark lines on the underside of leaves that widen over time.',
         icon: Icons.texture_outlined,
       ),
       DiseaseSymptom(
         title: 'Black spots',
-        description: 'Irregular black lesions surrounded by yellow halos on leaf blades.',
+        description:
+            'Irregular black lesions surrounded by yellow halos on leaf blades.',
         icon: Icons.circle_outlined,
       ),
       DiseaseSymptom(
         title: 'Premature leaf death',
-        description: 'Older leaves die early, reducing the plant\'s energy for fruit development.',
+        description:
+            'Older leaves die early, reducing the plant\'s energy for fruit development.',
         icon: Icons.eco_outlined,
       ),
     ],
@@ -64,12 +66,14 @@ class DiseaseGuideData {
       ),
       DiseaseCause(
         title: 'Humid conditions',
-        description: 'Warm, wet weather accelerates infection and lesion growth.',
+        description:
+            'Warm, wet weather accelerates infection and lesion growth.',
         icon: Icons.water_drop_outlined,
       ),
       DiseaseCause(
         title: 'Dense planting',
-        description: 'Poor airflow keeps leaves wet longer, favoring the fungus.',
+        description:
+            'Poor airflow keeps leaves wet longer, favoring the fungus.',
         icon: Icons.forest_outlined,
       ),
     ],
@@ -141,8 +145,7 @@ class DiseaseGuideData {
     shortName: 'Yellow Sigatoka',
     category: DiseaseCategory.fungal,
     risk: DiseaseRisk.moderate,
-    imageUrl:
-        'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Yellow_Sigatoka.jpg/640px-Yellow_Sigatoka.jpg',
+    imageUrl: 'assets/images/yellow_sigatoka.jpg',
     fallbackAsset: _fallback,
     summary:
         'An early-stage fungal leaf disease with yellow streaks that often precedes Black Sigatoka in the field.',
@@ -175,7 +178,8 @@ class DiseaseGuideData {
       ),
       DiseaseCause(
         title: 'Rainy climate',
-        description: 'Frequent rainfall keeps leaves moist for spore germination.',
+        description:
+            'Frequent rainfall keeps leaves moist for spore germination.',
         icon: Icons.thunderstorm_outlined,
       ),
     ],
@@ -215,7 +219,13 @@ class DiseaseGuideData {
       'Controlling Yellow Sigatoka early helps prevent Black Sigatoka outbreaks.',
     ],
     relatedIds: ['black_sigatoka', 'healthy_leaf'],
-    searchKeywords: ['yellow sigatoka', 'streaks', 'yellow', 'fungal', 'musicola'],
+    searchKeywords: [
+      'yellow sigatoka',
+      'streaks',
+      'yellow',
+      'fungal',
+      'musicola'
+    ],
   );
 
   static const panama = DiseaseGuideItem(
@@ -224,8 +234,7 @@ class DiseaseGuideData {
     shortName: 'Panama Disease',
     category: DiseaseCategory.fungal,
     risk: DiseaseRisk.high,
-    imageUrl:
-        'https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/Panama_disease_in_banana.jpg/640px-Panama_disease_in_banana.jpg',
+    imageUrl: 'assets/images/panama_disease.jpg',
     fallbackAsset: _fallback,
     summary:
         'Fusarium wilt — a soil-borne fungal disease with no chemical cure that can wipe out entire banana fields.',
@@ -258,12 +267,14 @@ class DiseaseGuideData {
       ),
       DiseaseCause(
         title: 'Contaminated tools',
-        description: 'Machetes and footwear can move infested soil between blocks.',
+        description:
+            'Machetes and footwear can move infested soil between blocks.',
         icon: Icons.build_outlined,
       ),
       DiseaseCause(
         title: 'Infected suckers',
-        description: 'Planting material from infected mats spreads the disease.',
+        description:
+            'Planting material from infected mats spreads the disease.',
         icon: Icons.grass_outlined,
       ),
     ],
@@ -317,7 +328,14 @@ class DiseaseGuideData {
       'Boot disinfection stations at field entrances save entire farms.',
     ],
     relatedIds: ['moko', 'healthy_leaf'],
-    searchKeywords: ['panama', 'fusarium', 'wilt', 'tr4', 'yellowing', 'vascular'],
+    searchKeywords: [
+      'panama',
+      'fusarium',
+      'wilt',
+      'tr4',
+      'yellowing',
+      'vascular'
+    ],
   );
 
   static const moko = DiseaseGuideItem(
@@ -326,8 +344,7 @@ class DiseaseGuideData {
     shortName: 'Moko Disease',
     category: DiseaseCategory.bacterial,
     risk: DiseaseRisk.high,
-    imageUrl:
-        'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5f/Bacterial_wilt_of_banana.jpg/640px-Bacterial_wilt_of_banana.jpg',
+    imageUrl: 'assets/images/moko_disease.jpg',
     fallbackAsset: _fallback,
     summary:
         'A highly contagious bacterial wilt that causes rapid collapse of banana plants.',
@@ -343,7 +360,8 @@ class DiseaseGuideData {
       ),
       DiseaseSymptom(
         title: 'Internal browning',
-        description: 'Brown discoloration of vascular tissue inside the pseudostem.',
+        description:
+            'Brown discoloration of vascular tissue inside the pseudostem.',
         icon: Icons.circle,
       ),
       DiseaseSymptom(
@@ -360,7 +378,8 @@ class DiseaseGuideData {
       ),
       DiseaseCause(
         title: 'Insect vectors',
-        description: 'Beetles and other insects can carry bacteria between plants.',
+        description:
+            'Beetles and other insects can carry bacteria between plants.',
         icon: Icons.bug_report_outlined,
       ),
       DiseaseCause(
@@ -405,7 +424,14 @@ class DiseaseGuideData {
       'Keep a dedicated disinfectant bucket at every field entrance.',
     ],
     relatedIds: ['panama', 'insect_pest'],
-    searchKeywords: ['moko', 'bacterial', 'wilt', 'ralstonia', 'ooze', 'collapse'],
+    searchKeywords: [
+      'moko',
+      'bacterial',
+      'wilt',
+      'ralstonia',
+      'ooze',
+      'collapse'
+    ],
   );
 
   static const bractMosaic = DiseaseGuideItem(
@@ -414,8 +440,7 @@ class DiseaseGuideData {
     shortName: 'Bract Mosaic Virus',
     category: DiseaseCategory.viral,
     risk: DiseaseRisk.moderate,
-    imageUrl:
-        'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Mosaic_virus_on_plant.jpg/640px-Mosaic_virus_on_plant.jpg',
+    imageUrl: 'assets/images/bract_mosaic_virus.jpg',
     fallbackAsset: _fallback,
     summary:
         'A virus disease causing mosaic patterns on bracts and leaves, spread primarily by aphids.',
@@ -426,12 +451,14 @@ class DiseaseGuideData {
     symptoms: [
       DiseaseSymptom(
         title: 'Mosaic patterns',
-        description: 'Irregular light and dark green patches on leaves and bracts.',
+        description:
+            'Irregular light and dark green patches on leaves and bracts.',
         icon: Icons.grid_on_outlined,
       ),
       DiseaseSymptom(
         title: 'Bract streaking',
-        description: 'Discolored streaks on flower bracts during bunch development.',
+        description:
+            'Discolored streaks on flower bracts during bunch development.',
         icon: Icons.deck_outlined,
       ),
       DiseaseSymptom(
@@ -497,8 +524,7 @@ class DiseaseGuideData {
     shortName: 'Insect Pest Damage',
     category: DiseaseCategory.pest,
     risk: DiseaseRisk.moderate,
-    imageUrl:
-        'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6e/Aphids_on_leaves.jpg/640px-Aphids_on_leaves.jpg',
+    imageUrl: 'assets/images/insect_pest_damage.jpg',
     fallbackAsset: _fallback,
     summary:
         'Physical damage from insects such as thrips, aphids, and weevils that weakens leaves and opens entry points for pathogens.',
@@ -576,7 +602,15 @@ class DiseaseGuideData {
       'Healthy plants tolerate minor pest damage better than stressed ones.',
     ],
     relatedIds: ['bract_mosaic', 'healthy_leaf'],
-    searchKeywords: ['insect', 'pest', 'thrips', 'aphid', 'weevil', 'chewing', 'holes'],
+    searchKeywords: [
+      'insect',
+      'pest',
+      'thrips',
+      'aphid',
+      'weevil',
+      'chewing',
+      'holes'
+    ],
   );
 
   static const healthyLeaf = DiseaseGuideItem(
@@ -585,8 +619,7 @@ class DiseaseGuideData {
     shortName: 'Healthy Leaf',
     category: DiseaseCategory.healthy,
     risk: DiseaseRisk.low,
-    imageUrl:
-        'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Banana_leaf_1.jpg/640px-Banana_leaf_1.jpg',
+    imageUrl: 'assets/images/healthy_banana_leaf.jpg',
     fallbackAsset: _fallback,
     summary:
         'The baseline for PLANTIVA scans — vibrant green leaves without disease symptoms or pest damage.',

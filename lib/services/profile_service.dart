@@ -30,8 +30,14 @@ class ProfileService {
       'updatedAt': FieldValue.serverTimestamp(),
     };
     if (fullName != null) data['fullName'] = fullName.trim();
-    if (contactNumber != null) data['contactNumber'] = contactNumber.trim();
-    if (farmLocation != null) data['farmLocation'] = farmLocation.trim();
+    if (contactNumber != null) {
+      data['phoneNumber'] = contactNumber.trim();
+      data['contactNumber'] = contactNumber.trim();
+    }
+    if (farmLocation != null) {
+      data['location'] = farmLocation.trim();
+      data['farmLocation'] = farmLocation.trim();
+    }
     await _db.collection('users').doc(id).set(data, SetOptions(merge: true));
     if (fullName != null && fullName.trim().isNotEmpty) {
       await _auth.currentUser?.updateDisplayName(fullName.trim());
@@ -68,7 +74,10 @@ class ProfileService {
       await _storage.ref().child('users/$id/profile.jpg').delete();
     } catch (_) {}
     await _db.collection('users').doc(id).set(
-      {'photoUrl': FieldValue.delete(), 'updatedAt': FieldValue.serverTimestamp()},
+      {
+        'photoUrl': FieldValue.delete(),
+        'updatedAt': FieldValue.serverTimestamp()
+      },
       SetOptions(merge: true),
     );
     await _auth.currentUser?.updatePhotoURL(null);
@@ -122,11 +131,8 @@ class ProfileService {
       await _storage.ref().child('users/$id/profile.jpg').delete();
     } catch (_) {}
 
-    final scans = await _db
-        .collection('users')
-        .doc(id)
-        .collection('scans')
-        .get();
+    final scans =
+        await _db.collection('users').doc(id).collection('scans').get();
     for (final doc in scans.docs) {
       final url = doc.data()['imageUrl'] as String?;
       if (url != null && url.isNotEmpty) {

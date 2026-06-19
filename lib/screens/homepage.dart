@@ -190,22 +190,37 @@ class _TopGreeting extends StatelessWidget {
               builder: (context, snapshot) {
                 final userData =
                     snapshot.data?.data() as Map<String, dynamic>? ?? {};
-                final fullName = userData['fullName'] ?? 'User';
+                final storedName = (userData['fullName'] as String?)?.trim();
+                final authName = user?.displayName?.trim();
+                final fullName = storedName?.isNotEmpty == true
+                    ? storedName!
+                    : authName?.isNotEmpty == true
+                        ? authName!
+                        : 'User';
                 final firstName = fullName.split(' ').first;
 
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Good morning,',
-                      style: TextStyle(color: Color(0xFF6C706E), fontSize: 14),
-                    ),
                     Text(
-                      firstName,
+                      'Hello $firstName!',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: AppColors.green,
-                        fontSize: 36,
+                        fontSize: 30,
                         fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Ready to check your banana plants?',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Color(0xFF6C706E),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w400,
                       ),
                     ),
                   ],
@@ -237,9 +252,8 @@ class _TopGreeting extends StatelessWidget {
           StreamBuilder<DocumentSnapshot>(
             stream: firestore.collection('users').doc(user?.uid).snapshots(),
             builder: (context, snap) {
-              final photoUrl =
-                  (snap.data?.data() as Map<String, dynamic>?)?['photoUrl']
-                      as String?;
+              final photoUrl = (snap.data?.data()
+                  as Map<String, dynamic>?)?['photoUrl'] as String?;
               return GestureDetector(
                 onTap: onProfileTap,
                 child: CircleAvatar(
@@ -330,10 +344,12 @@ class _HeroScanCard extends StatelessWidget {
                   backgroundColor: const Color(0xFFFFC400),
                   foregroundColor: const Color(0xFF232323),
                 ),
-                onPressed: () {Navigator.push(
-                 context,
-                MaterialPageRoute(builder: (_) => const ScannerScreen()),
-                );},
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const ScannerScreen()),
+                  );
+                },
                 icon: const Icon(Icons.qr_code_scanner_rounded),
                 label: const Text(
                   'Start Scan',
@@ -385,51 +401,51 @@ class _StatCard extends StatelessWidget {
                 : null,
           ),
           child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: const Color(0xFFE8F5E9),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(icon, color: AppColors.green),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.w800,
-              color: Color(0xFF222522),
-            ),
-          ),
-          Text(
-            label,
-            style: const TextStyle(color: Color(0xFF7B817E), fontSize: 14),
-          ),
-          if (onTap != null) ...[
-            const SizedBox(height: 6),
-            Row(
-              children: [
-                Text(
-                  'View details',
-                  style: TextStyle(
-                    color: AppColors.green.withValues(alpha: 0.9),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE8F5E9),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                Icon(
-                  Icons.arrow_forward_ios_rounded,
-                  size: 11,
-                  color: AppColors.green.withValues(alpha: 0.9),
+                child: Icon(icon, color: AppColors.green),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF222522),
+                ),
+              ),
+              Text(
+                label,
+                style: const TextStyle(color: Color(0xFF7B817E), fontSize: 14),
+              ),
+              if (onTap != null) ...[
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Text(
+                      'View details',
+                      style: TextStyle(
+                        color: AppColors.green.withValues(alpha: 0.9),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      size: 11,
+                      color: AppColors.green.withValues(alpha: 0.9),
+                    ),
+                  ],
                 ),
               ],
-            ),
-          ],
-        ],
+            ],
           ),
         ),
       ),
