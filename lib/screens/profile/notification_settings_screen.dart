@@ -83,8 +83,8 @@ class _NotificationSettingsScreenState
               padding: const EdgeInsets.all(16),
               children: [
                 _toggle(
-                  'Push Notifications',
-                  'Receive alerts on your device',
+                  'In-app Alerts',
+                  'Show PLANTIVA alerts inside the app',
                   _push,
                   (v) {
                     setState(() => _push = v);

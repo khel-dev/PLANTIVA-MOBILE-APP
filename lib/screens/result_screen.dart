@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_plantiva/screens/homepage.dart';
 import 'package:flutter_plantiva/screens/treatment_recommendation_screen.dart';
 
 class ResultScreen extends StatelessWidget {
@@ -89,10 +90,243 @@ class ResultScreen extends StatelessWidget {
     return '• Consult local agricultural extension officer\n• Document symptoms for proper diagnosis\n• Isolate affected plants if possible';
   }
 
+  bool _isInvalidResult(Map<String, String> result) {
+    final status = result['validation_status'];
+    if (status != null && status != 'validDiagnosis') return true;
+    final label = (result['label'] ?? '').toLowerCase();
+    return label.contains('not a banana leaf') ||
+        label.contains('unable to determine') ||
+        label.contains('low confidence') ||
+        label.contains('unclear image') ||
+        label.contains('invalid image') ||
+        label.contains('model not ready') ||
+        label == 'error';
+  }
+
+  String _invalidTitle(String label) {
+    final l = label.toLowerCase();
+    if (l.contains('not a banana leaf')) return 'Please capture a banana leaf';
+    if (l.contains('low confidence')) return 'Unable to identify disease';
+    if (l.contains('unclear image')) return 'Image quality insufficient';
+    if (l.contains('invalid image')) return 'Invalid image';
+    if (l.contains('model not ready') || l == 'error') {
+      return 'Scan could not be completed';
+    }
+    return 'Unable to identify disease';
+  }
+
+  Widget _buildInvalidResult(BuildContext context) {
+    final label = result['label'] ?? 'Unable to Determine';
+    final confidence = result['confidence'] ?? '0%';
+    final reason = (result['validation_message'] ??
+            result['raw_label'] ??
+            'The scan was rejected because the image is not reliable enough for diagnosis.')
+        .trim();
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF5F5F0),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.arrow_back_rounded),
+                  ),
+                  const SizedBox(width: 4),
+                  const Text(
+                    'Scan Review',
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF1B4332),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: Image.file(
+                  File(imagePath),
+                  width: double.infinity,
+                  height: 260,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(
+                    width: double.infinity,
+                    height: 220,
+                    color: const Color(0xFFE8F5E9),
+                    child: const Icon(
+                      Icons.image_not_supported_outlined,
+                      size: 48,
+                      color: Color(0xFF2E7D32),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 18),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(22),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.06),
+                      blurRadius: 12,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFFF3E0),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: const Icon(
+                            Icons.info_outline_rounded,
+                            color: Color(0xFFEF6C00),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                _invalidTitle(label),
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w900,
+                                  color: Color(0xFF1B4332),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '$label - Confidence $confidence',
+                                style: TextStyle(
+                                  color: Colors.grey.shade600,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      reason,
+                      style: TextStyle(
+                        color: Colors.grey.shade700,
+                        height: 1.55,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE8F5E9),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: const Color(0xFFC8E6C9)),
+                ),
+                child: const Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Tips for a better scan',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w900,
+                        color: Color(0xFF1B4332),
+                        fontSize: 16,
+                      ),
+                    ),
+                    SizedBox(height: 10),
+                    _Tip(text: 'Use a clear banana leaf photo.'),
+                    _Tip(text: 'Avoid blurry or dark images.'),
+                    _Tip(text: 'Use good natural lighting.'),
+                    _Tip(text: 'Focus on one leaf and fill the frame.'),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.camera_alt_outlined),
+                      label: const Text('Scan Again'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFF1B4332),
+                        side: const BorderSide(
+                          color: Color(0xFF1B4332),
+                          width: 1.5,
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.of(context).pushAndRemoveUntil(
+                          MaterialPageRoute<void>(
+                            builder: (_) => const HomePage(),
+                          ),
+                          (_) => false,
+                        );
+                      },
+                      icon: const Icon(Icons.home_outlined),
+                      label: const Text('Back to Home'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF1B4332),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final label = result['label'] ?? 'Unknown';
     final confidence = result['confidence'] ?? '0%';
+    if (_isInvalidResult(result)) {
+      return _buildInvalidResult(context);
+    }
     final isHealthy = label.toLowerCase().contains('healthy');
     final severity = _getSeverity(label, confidence);
     final severityColor = _getSeverityColor(severity);
@@ -618,6 +852,39 @@ class ResultScreen extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _Tip extends StatelessWidget {
+  const _Tip({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(
+            Icons.check_circle_rounded,
+            color: Color(0xFF2E7D32),
+            size: 18,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(
+                color: Color(0xFF2D3A31),
+                height: 1.35,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

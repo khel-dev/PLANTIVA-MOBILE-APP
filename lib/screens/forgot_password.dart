@@ -36,14 +36,24 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Password reset email sent. Please check your inbox.'),
+          content: Text(
+            'Password reset link sent. Please check your email inbox.',
+          ),
         ),
       );
       Navigator.of(context).pop();
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
+      final message = switch (e.code) {
+        'invalid-email' => 'Please enter a valid email address.',
+        'user-not-found' =>
+          'No account was found for this email address.',
+        'network-request-failed' =>
+          'Network error. Please check your connection and try again.',
+        _ => e.message ?? 'Unable to send password reset link.',
+      };
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message ?? 'Unable to send reset email.')),
+        SnackBar(content: Text(message)),
       );
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -80,7 +90,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                     ),
                     const SizedBox(height: 8),
                     const Text(
-                      'Enter your email and we will send reset instructions.',
+                      'Enter your email and we will send a password reset link.',
                       style: TextStyle(
                         color: AppColors.mutedText,
                         fontSize: 15,

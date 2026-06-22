@@ -1,16 +1,20 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:image/image.dart' as img;
 import 'package:tflite_flutter/tflite_flutter.dart';
 
-/// Offline TFLite classifier — same preprocessing as `PLANTIVA_CV/app.py`
-/// (RGB, 224×224, values / 255).
+/// Offline TFLite classifier using the same preprocessing as PLANTIVA_CV/app.py.
 class ClassifierService {
   static const String _modelAsset =
       'assets/models/plantiva_banana_model.tflite';
   static const String _labelsAsset = 'assets/models/labels.json';
+  static const double _minConfidencePct = 65.0;
+  static const double _maxEntropy = 1.6;
+  static const double _minTopTwoMarginPct = 15.0;
 
   Interpreter? _interpreter;
   Map<int, String> _labels = {};
@@ -22,9 +26,6 @@ class ClassifierService {
 
   String? get loadError => _loadError;
 
-  /// Computes Shannon entropy of a probability distribution.
-  /// High entropy = model is confused / guessing = likely NOT a banana leaf.
-  /// Max entropy for 7 classes = log(7) ≈ 1.946
   double _entropy(List<double> probs) {
     double h = 0.0;
     for (final p in probs) {
@@ -43,7 +44,7 @@ class ClassifierService {
       final i = top[r];
       final name = _cleanLabel(_labels[i] ?? '?');
       final pct = (probs[i] * 100).clamp(0.0, 100.0);
-      lines.add('${r + 1}. $name — ${pct.toStringAsFixed(1)}%');
+      lines.add('${r + 1}. $name - ${pct.toStringAsFixed(1)}%');
     }
     return lines.join('\n');
   }
@@ -115,6 +116,9 @@ class ClassifierService {
         'label': 'Model not ready',
         'confidence': '0%',
         'raw_label': _loadError ?? 'Call loadModel() after app start.',
+        'validation_status': 'modelError',
+        'validation_message':
+            'The AI model is not ready. Please reopen the scanner and try again.',
       };
     }
 
@@ -122,10 +126,16 @@ class ClassifierService {
       final bytes = await imageFile.readAsBytes();
       final decoded = img.decodeImage(bytes);
       if (decoded == null) {
+        debugPrint(
+          'PLANTIVA classifier: invalid image decode for ${imageFile.path}',
+        );
         return {
-          'label': 'Error',
+          'label': 'Invalid Image',
           'confidence': '0%',
           'raw_label': 'Could not decode image.',
+          'validation_status': 'imageDecodeError',
+          'validation_message':
+              'The selected file could not be read as an image.',
         };
       }
 
@@ -144,42 +154,63 @@ class ClassifierService {
       _interpreter!.run(input, output);
 
       final scores = output[0];
-      var maxIndex = 0;
-      var maxScore = scores[0];
-      for (var i = 1; i < scores.length; i++) {
-        if (scores[i] > maxScore) {
-          maxScore = scores[i];
-          maxIndex = i;
-        }
-      }
+      final order = List<int>.generate(scores.length, (i) => i);
+      order.sort((a, b) => scores[b].compareTo(scores[a]));
+      final maxIndex = order.first;
+      final maxScore = scores[maxIndex];
+      final secondScore = order.length > 1 ? scores[order[1]] : 0.0;
 
-      // The TFLite model already has a softmax final layer, so scores are probabilities.
       final probs = scores.map((e) => e.toDouble()).toList();
       final entropyVal = _entropy(probs);
+      final confidencePct = (maxScore * 100).clamp(0.0, 100.0);
+      final secondConfidencePct = (secondScore * 100).clamp(0.0, 100.0);
+      final marginPct = (confidencePct - secondConfidencePct).clamp(0.0, 100.0);
+      final insights = scores.length >= 2 ? _formatTopInsights(scores) : '';
 
-      // Entropy guard: max entropy for 7 classes = ln(7) ≈ 1.946
-      // If entropy > 1.6, the model is too confused → likely NOT a banana leaf
-      if (entropyVal > 1.6) {
+      if (entropyVal > _maxEntropy) {
         return {
           'label': 'Not a Banana Leaf',
           'confidence': '0%',
           'raw_label':
               'The image does not appear to be a banana leaf. Please capture a clear photo of a banana leaf.',
+          'validation_status': 'unrelatedOrUnreliable',
+          'validation_message':
+              'The AI could not confirm that this is a clear banana leaf image.',
+          'entropy': entropyVal.toStringAsFixed(3),
+          'top2_margin': '${marginPct.toStringAsFixed(1)}%',
+          if (insights.isNotEmpty) 'insights': insights,
         };
       }
 
       final rawLabel = _labels[maxIndex] ?? 'Unknown';
       final clean = _cleanLabel(rawLabel);
-      final confidencePct = (maxScore * 100).clamp(0.0, 100.0);
-      final insights = scores.length >= 2 ? _formatTopInsights(scores) : '';
 
-      // Low-confidence guard: if model is less than 65% sure, don't guess
-      if (confidencePct < 65.0) {
+      if (confidencePct < _minConfidencePct) {
         return {
-          'label': 'Unable to Determine',
+          'label': 'Low Confidence',
           'confidence': '${confidencePct.toStringAsFixed(1)}%',
           'raw_label':
-              'Low confidence — please retake photo with better lighting and focus on one clear leaf.',
+              'Low confidence - please retake photo with better lighting and focus on one clear leaf.',
+          'validation_status': 'lowConfidence',
+          'validation_message':
+              'The image does not provide enough confidence for a reliable diagnosis.',
+          'entropy': entropyVal.toStringAsFixed(3),
+          'top2_margin': '${marginPct.toStringAsFixed(1)}%',
+          if (insights.isNotEmpty) 'insights': insights,
+        };
+      }
+
+      if (marginPct < _minTopTwoMarginPct) {
+        return {
+          'label': 'Unclear Image',
+          'confidence': '${confidencePct.toStringAsFixed(1)}%',
+          'raw_label':
+              'The top disease predictions are too close. Please retake a clearer banana leaf photo.',
+          'validation_status': 'highUncertainty',
+          'validation_message':
+              'The AI found similar disease patterns and cannot make a safe diagnosis.',
+          'entropy': entropyVal.toStringAsFixed(3),
+          'top2_margin': '${marginPct.toStringAsFixed(1)}%',
           if (insights.isNotEmpty) 'insights': insights,
         };
       }
@@ -188,13 +219,20 @@ class ClassifierService {
         'label': clean,
         'confidence': '${confidencePct.toStringAsFixed(1)}%',
         'raw_label': rawLabel,
+        'validation_status': 'validDiagnosis',
+        'entropy': entropyVal.toStringAsFixed(3),
+        'top2_margin': '${marginPct.toStringAsFixed(1)}%',
         if (insights.isNotEmpty) 'insights': insights,
       };
     } catch (e) {
+      debugPrint('PLANTIVA classifier error: $e');
       return {
         'label': 'Error',
         'confidence': '0%',
         'raw_label': e.toString(),
+        'validation_status': 'modelError',
+        'validation_message':
+            'The AI model could not complete this scan. Please try again.',
       };
     }
   }

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_plantiva/models/scan_record.dart';
 import 'package:flutter_plantiva/utils/scan_diagnosis_helper.dart';
 import 'package:path_provider/path_provider.dart';
@@ -18,8 +19,19 @@ class ScanHistoryService {
     if (l.isEmpty) return false;
     if (l.contains('model not ready')) return false;
     if (l == 'error') return false;
+    if (l.contains('not a banana leaf')) return false;
+    if (l.contains('unable to determine')) return false;
+    if (l.contains('low confidence')) return false;
+    if (l.contains('unclear image')) return false;
+    if (l.contains('invalid image')) return false;
     if (l.contains('cannot connect')) return false;
     return true;
+  }
+
+  static bool _isValidDiagnosis(Map<String, String> result) {
+    final status = result['validation_status'];
+    if (status != null && status != 'validDiagnosis') return false;
+    return _shouldPersist(result['label'] ?? '');
   }
 
   static String? _uid() => _auth.currentUser?.uid;
@@ -28,7 +40,12 @@ class ScanHistoryService {
   static Future<String?> _persistLocalImage(String sourcePath) async {
     try {
       final src = File(sourcePath);
-      if (!await src.exists()) return null;
+      if (!await src.exists()) {
+        debugPrint(
+          'PLANTIVA scan image copy failed: source not found $sourcePath',
+        );
+        return null;
+      }
       final dir = await getApplicationDocumentsDirectory();
       final scansDir = Directory(p.join(dir.path, 'scans'));
       if (!await scansDir.exists()) await scansDir.create(recursive: true);
@@ -36,7 +53,8 @@ class ScanHistoryService {
       final dest = File(p.join(scansDir.path, name));
       await src.copy(dest.path);
       return dest.path;
-    } catch (_) {
+    } catch (e) {
+      debugPrint('PLANTIVA scan image copy failed: $e');
       return sourcePath;
     }
   }
@@ -46,7 +64,8 @@ class ScanHistoryService {
       final ref = _storage.ref().child('users/$uid/scans/$scanId.jpg');
       await ref.putFile(File(localPath));
       return await ref.getDownloadURL();
-    } catch (_) {
+    } catch (e) {
+      debugPrint('PLANTIVA Firebase Storage upload failed: $e');
       return null;
     }
   }
@@ -56,10 +75,17 @@ class ScanHistoryService {
     required String imagePath,
   }) async {
     final label = result['label'] ?? '';
-    if (!_shouldPersist(label)) return null;
+    if (!_isValidDiagnosis(result)) {
+      debugPrint('PLANTIVA scan rejected, not saved: $label '
+          '(${result['validation_status'] ?? 'no validation status'})');
+      return null;
+    }
 
     final uid = _uid();
-    if (uid == null) return null;
+    if (uid == null) {
+      debugPrint('PLANTIVA Firestore save skipped: no signed-in user.');
+      return null;
+    }
 
     final enriched = ScanDiagnosisHelper.enrichResult(result);
     final userRef = _db.collection('users').doc(uid);
@@ -95,8 +121,13 @@ class ScanHistoryService {
       },
       SetOptions(merge: true),
     );
-    await batch.commit();
-    return scanId;
+    try {
+      await batch.commit();
+      return scanId;
+    } catch (e) {
+      debugPrint('PLANTIVA Firestore scan save failed: $e');
+      rethrow;
+    }
   }
 
   static Stream<List<ScanRecord>> watchScans({int limit = 50}) {

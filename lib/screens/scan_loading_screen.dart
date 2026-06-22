@@ -79,7 +79,8 @@ class _ScanLoadingScreenState extends State<ScanLoadingScreen>
           result,
           imagePath: widget.imagePath,
         );
-      } catch (_) {
+      } catch (e) {
+        debugPrint('PLANTIVA scan save failed after classification: $e');
         savedScanId = null;
       }
 
