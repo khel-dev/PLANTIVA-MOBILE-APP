@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_plantiva/config/app_colors.dart';
@@ -25,7 +23,6 @@ class _RegistrationPageState extends State<RegistrationPage> {
   final _confirm = TextEditingController();
   final _contact = TextEditingController();
   final _farmLocation = TextEditingController();
-  StreamSubscription<User?>? _authSubscription;
 
   bool _agreed = false;
   bool _hidePassword = true;
@@ -34,18 +31,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
   bool _navigatingHome = false;
 
   @override
-  void initState() {
-    super.initState();
-    _authSubscription = FirebaseAuth.instance.authStateChanges().listen((user) {
-      if (user != null) {
-        _goHome();
-      }
-    });
-  }
-
-  @override
   void dispose() {
-    _authSubscription?.cancel();
     _name.dispose();
     _email.dispose();
     _password.dispose();
@@ -65,6 +51,23 @@ class _RegistrationPageState extends State<RegistrationPage> {
         (_) => false,
       );
     });
+  }
+
+  Future<bool> _repairCurrentUserProfile() async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    final formEmail = _email.text.trim();
+    if (currentUser == null ||
+        (currentUser.email ?? '').toLowerCase() != formEmail.toLowerCase()) {
+      return false;
+    }
+
+    await _authService.saveCurrentUserRegistrationProfile(
+      fullName: _name.text.trim(),
+      email: formEmail,
+      contactNumber: _contact.text.trim(),
+      farmLocation: _farmLocation.text.trim(),
+    );
+    return true;
   }
 
   Future<void> _register() async {
@@ -99,19 +102,38 @@ class _RegistrationPageState extends State<RegistrationPage> {
       _goHome();
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
-      if (FirebaseAuth.instance.currentUser != null) {
-        _goHome();
-        return;
+      if (e.code == 'profile-setup-failed' ||
+          e.code == 'email-already-in-use') {
+        try {
+          final repaired = await _repairCurrentUserProfile();
+          if (repaired) {
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Profile setup completed. Welcome to PLANTIVA!'),
+              ),
+            );
+            _goHome();
+            return;
+          }
+        } catch (_) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Account created, but profile setup failed. Please retry.',
+              ),
+            ),
+          );
+          return;
+        }
       }
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.message ?? 'Registration failed.')),
       );
     } catch (e) {
       if (!mounted) return;
-      if (FirebaseAuth.instance.currentUser != null) {
-        _goHome();
-        return;
-      }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Registration failed. Please try again. ($e)')),
       );

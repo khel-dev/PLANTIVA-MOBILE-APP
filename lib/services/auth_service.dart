@@ -53,11 +53,19 @@ class AuthService {
     final cleanPhone = (contactNumber ?? '').trim();
     final cleanLocation = (farmLocation ?? '').trim();
 
-    final credential = await _auth.createUserWithEmailAndPassword(
-      email: cleanEmail,
-      password: password,
-    );
-    final user = credential.user;
+    UserCredential? credential;
+    try {
+      credential = await _auth.createUserWithEmailAndPassword(
+        email: cleanEmail,
+        password: password,
+      );
+    } on FirebaseAuthException {
+      rethrow;
+    }
+
+    await credential.user?.reload();
+    final user = _auth.currentUser;
+
     if (user == null) {
       throw FirebaseAuthException(
         code: 'registration-user-missing',
@@ -65,32 +73,44 @@ class AuthService {
       );
     }
 
-    if (cleanName.isNotEmpty) {
-      try {
-        await user.updateDisplayName(cleanName).timeout(
-              const Duration(seconds: 8),
-            );
-      } catch (e, stackTrace) {
-        debugPrint(
-            'FirebaseAuth displayName update after registration failed: $e');
-        debugPrintStack(stackTrace: stackTrace);
-      }
+    try {
+      await _saveRegistrationProfile(
+        user: user,
+        fullName: cleanName,
+        email: cleanEmail,
+        phoneNumber: cleanPhone,
+        location: cleanLocation,
+      );
+    } catch (e, stackTrace) {
+      debugPrint('Registration profile setup failed: $e');
+      debugPrintStack(stackTrace: stackTrace);
+      throw FirebaseAuthException(
+        code: 'profile-setup-failed',
+        message: 'Account created, but profile setup failed. Please retry.',
+      );
+    }
+  }
+
+  Future<void> saveCurrentUserRegistrationProfile({
+    required String fullName,
+    required String email,
+    String? contactNumber,
+    String? farmLocation,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      throw FirebaseAuthException(
+        code: 'no-current-user',
+        message: 'No signed-in user found for profile setup.',
+      );
     }
 
-    await _upsertUserProfile(
-      uid: user.uid,
-      email: user.email ?? cleanEmail,
-      fullName: cleanName,
-      provider: 'password',
-      photoUrl: user.photoURL,
-      extra: {
-        'phoneNumber': cleanPhone,
-        'location': cleanLocation,
-        'contactNumber': cleanPhone,
-        'farmLocation': cleanLocation,
-      },
-    ).timeout(
-      const Duration(seconds: 12),
+    await _saveRegistrationProfile(
+      user: user,
+      fullName: fullName.trim(),
+      email: email.trim(),
+      phoneNumber: (contactNumber ?? '').trim(),
+      location: (farmLocation ?? '').trim(),
     );
   }
 
@@ -168,6 +188,41 @@ class AuthService {
     if (!snapshot.exists || snapshot.data()?['createdAt'] == null) {
       await userRef.set({'createdAt': now}, SetOptions(merge: true));
     }
+  }
+
+  Future<void> _saveRegistrationProfile({
+    required User user,
+    required String fullName,
+    required String email,
+    required String phoneNumber,
+    required String location,
+  }) async {
+    if (fullName.isNotEmpty) {
+      try {
+        await user.updateDisplayName(fullName).timeout(
+              const Duration(seconds: 8),
+            );
+        await user.reload();
+      } catch (e) {
+        debugPrint('updateDisplayName failed (non-fatal): $e');
+      }
+    }
+
+    await _upsertUserProfile(
+      uid: user.uid,
+      email: user.email ?? email,
+      fullName: fullName,
+      provider: 'password',
+      photoUrl: user.photoURL,
+      extra: {
+        'phoneNumber': phoneNumber,
+        'contactNumber': phoneNumber,
+        'location': location,
+        'farmLocation': location,
+      },
+    ).timeout(
+      const Duration(seconds: 12),
+    );
   }
 
   User? get currentUser => _auth.currentUser;
