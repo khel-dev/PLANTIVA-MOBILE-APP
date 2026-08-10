@@ -74,7 +74,7 @@ class ScanHistoryService {
     }
   }
 
-  static Future<String> _uploadImage(
+  static Future<String?> _uploadImage(
     String uid,
     String scanId,
     String localPath,
@@ -85,11 +85,7 @@ class ScanHistoryService {
       return await ref.getDownloadURL().timeout(const Duration(seconds: 15));
     } catch (e) {
       debugPrint('PLANTIVA Firebase Storage upload failed: $e');
-      throw ScanPersistenceException(
-        'storage-upload-failed',
-        'Scan image upload failed. Please check your connection and try again.',
-        e,
-      );
+      return null;
     }
   }
 
@@ -154,17 +150,25 @@ class ScanHistoryService {
     final batch = _db.batch();
     batch.set(scanRef, {
       'label': label,
+      'disease_name': label,
       'confidence': enriched['confidence'] ?? '',
       'rawLabel': enriched['raw_label'] ?? '',
+      'raw_label': enriched['raw_label'] ?? '',
       'severity': enriched['severity'] ?? '',
       'summary': enriched['summary'] ?? '',
       'recommendations': enriched['recommendations'] ?? '',
+      'recommendation': enriched['recommendations'] ?? '',
       'severityAction': enriched['severityAction'] ?? '',
+      'severity_action': enriched['severityAction'] ?? '',
       if ((enriched['insights'] ?? '').trim().isNotEmpty)
         'insights': enriched['insights'],
       'imagePath': localPath,
-      'imageUrl': imageUrl,
+      'image_path': localPath,
+      'imageUrl': imageUrl ?? '',
+      'image_url': imageUrl ?? '',
+      'imageUploadStatus': imageUrl == null ? 'failed' : 'uploaded',
       'createdAt': FieldValue.serverTimestamp(),
+      'timestamp': FieldValue.serverTimestamp(),
     });
     batch.set(
       userRef,
@@ -177,6 +181,11 @@ class ScanHistoryService {
     );
     try {
       await batch.commit().timeout(const Duration(seconds: 20));
+      if (imageUrl == null) {
+        debugPrint(
+          'PLANTIVA scan saved without Firebase Storage image URL: $scanId',
+        );
+      }
       return scanId;
     } catch (e) {
       debugPrint('PLANTIVA Firestore scan save failed: $e');

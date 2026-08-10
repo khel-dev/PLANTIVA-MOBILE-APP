@@ -229,6 +229,7 @@ ${scan.effectiveRecommendations}
                         ScanImageWidget(
                           imagePath: scan.imagePath,
                           imageUrl: scan.imageUrl,
+                          imageBase64: scan.imageBase64,
                           width: MediaQuery.of(context).size.width,
                           height: 260,
                           borderRadius: 0,
@@ -522,6 +523,7 @@ ${scan.effectiveRecommendations}
           ScanImageWidget(
             imagePath: r.imagePath,
             imageUrl: r.imageUrl,
+            imageBase64: r.imageBase64,
             width: 48,
             height: 48,
           ),
@@ -569,33 +571,68 @@ ${scan.effectiveRecommendations}
           ),
         ],
       ),
-      child: Row(
-        children: [
-          Expanded(
-            child: OutlinedButton.icon(
-              onPressed: _savePdf,
-              icon: const Icon(Icons.picture_as_pdf_outlined, size: 18),
-              label: const Text('PDF'),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 380;
+          final pdfButton = OutlinedButton.icon(
+            onPressed: _savePdf,
+            icon: const Icon(Icons.picture_as_pdf_outlined, size: 18),
+            label: const Text(
+              'PDF',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: OutlinedButton.icon(
-              onPressed: _deleteScan,
-              icon:
-                  const Icon(Icons.delete_outline, size: 18, color: Colors.red),
-              label: const Text('Delete', style: TextStyle(color: Colors.red)),
+          );
+          final deleteButton = OutlinedButton.icon(
+            onPressed: _deleteScan,
+            icon: const Icon(
+              Icons.delete_outline,
+              size: 18,
+              color: Colors.red,
             ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            flex: 2,
-            child: ElevatedButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Done'),
+            label: const Text(
+              'Delete',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(color: Colors.red),
             ),
-          ),
-        ],
+          );
+          final doneButton = ElevatedButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              'Done',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          );
+
+          if (compact) {
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    Expanded(child: pdfButton),
+                    const SizedBox(width: 8),
+                    Expanded(child: deleteButton),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                SizedBox(width: double.infinity, child: doneButton),
+              ],
+            );
+          }
+
+          return Row(
+            children: [
+              Expanded(child: pdfButton),
+              const SizedBox(width: 8),
+              Expanded(child: deleteButton),
+              const SizedBox(width: 8),
+              Expanded(flex: 2, child: doneButton),
+            ],
+          );
+        },
       ),
     );
   }

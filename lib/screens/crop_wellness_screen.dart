@@ -744,6 +744,7 @@ Widget _scanThumb(ScanRecord scan, double width, double height) {
   return ScanImageWidget(
     imagePath: scan.imagePath,
     imageUrl: scan.imageUrl,
+    imageBase64: scan.imageBase64,
     width: width,
     height: height,
   );

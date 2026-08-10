@@ -16,6 +16,7 @@ class TreatmentRecommendationScreen extends StatefulWidget {
     required this.isHealthy,
     this.imagePath,
     this.imageUrl,
+    this.imageBase64,
     this.savedScanId,
   });
 
@@ -27,6 +28,7 @@ class TreatmentRecommendationScreen extends StatefulWidget {
   final bool isHealthy;
   final String? imagePath;
   final String? imageUrl;
+  final String? imageBase64;
   final String? savedScanId;
 
   @override
@@ -175,6 +177,7 @@ class _TreatmentRecommendationScreenState
                     label: widget.label,
                     imagePath: widget.imagePath,
                     imageUrl: widget.imageUrl,
+                    imageBase64: widget.imageBase64,
                     severity: widget.severity,
                     severityColor: _severityColor,
                   ),
@@ -298,6 +301,7 @@ class _Header extends StatelessWidget {
     required this.label,
     required this.imagePath,
     required this.imageUrl,
+    required this.imageBase64,
     required this.severity,
     required this.severityColor,
   });
@@ -305,6 +309,7 @@ class _Header extends StatelessWidget {
   final String label;
   final String? imagePath;
   final String? imageUrl;
+  final String? imageBase64;
   final String severity;
   final Color severityColor;
 
@@ -315,6 +320,7 @@ class _Header extends StatelessWidget {
         ScanImageWidget(
           imagePath: imagePath,
           imageUrl: imageUrl,
+          imageBase64: imageBase64,
           width: double.infinity,
           height: 310,
           borderRadius: 0,

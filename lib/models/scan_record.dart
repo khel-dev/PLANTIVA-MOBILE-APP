@@ -11,6 +11,7 @@ class ScanRecord {
     required this.createdAt,
     this.imagePath,
     this.imageUrl,
+    this.imageBase64,
     this.rawLabel,
     this.severity,
     this.summary,
@@ -26,6 +27,7 @@ class ScanRecord {
   final DateTime? createdAt;
   final String? imagePath;
   final String? imageUrl;
+  final String? imageBase64;
   final String? rawLabel;
   final String? severity;
   final String? summary;
@@ -58,22 +60,41 @@ class ScanRecord {
 
   factory ScanRecord.fromDoc(DocumentSnapshot doc) {
     final m = doc.data() as Map<String, dynamic>? ?? {};
-    final label = m['label'] as String? ?? '';
-    final conf = m['confidence'] as String? ?? '';
+    String? readString(List<String> keys) {
+      for (final key in keys) {
+        final value = m[key];
+        if (value is String && value.trim().isNotEmpty) return value.trim();
+      }
+      return null;
+    }
+
+    DateTime? readDate(List<String> keys) {
+      for (final key in keys) {
+        final value = m[key];
+        if (value is Timestamp) return value.toDate();
+        if (value is DateTime) return value;
+        if (value is String) return DateTime.tryParse(value);
+      }
+      return null;
+    }
+
+    final label = readString(['label', 'disease_name', 'diseaseName']) ?? '';
+    final conf = readString(['confidence', 'confidenceScore']) ?? '';
     return ScanRecord(
       id: doc.id,
       label: label,
       category: DiseaseLabels.normalize(label),
       confidence: conf,
-      createdAt: (m['createdAt'] as Timestamp?)?.toDate(),
-      imagePath: m['imagePath'] as String?,
-      imageUrl: m['imageUrl'] as String?,
-      rawLabel: m['rawLabel'] as String?,
-      severity: m['severity'] as String?,
-      summary: m['summary'] as String?,
-      recommendations: m['recommendations'] as String?,
-      severityAction: m['severityAction'] as String?,
-      insights: m['insights'] as String?,
+      createdAt: readDate(['createdAt', 'timestamp', 'scan_date']),
+      imagePath: readString(['imagePath', 'image_path']),
+      imageUrl: readString(['imageUrl', 'image_url']),
+      imageBase64: readString(['imageBase64', 'image_base64']),
+      rawLabel: readString(['rawLabel', 'raw_label']),
+      severity: readString(['severity']),
+      summary: readString(['summary']),
+      recommendations: readString(['recommendations', 'recommendation']),
+      severityAction: readString(['severityAction', 'severity_action']),
+      insights: readString(['insights']),
     );
   }
 }
@@ -118,8 +139,18 @@ String relativeScanTime(DateTime? date) {
   if (diff == 1) return 'Yesterday';
   if (diff < 7) return '$diff days ago';
   const months = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
   ];
   String two(int n) => n.toString().padLeft(2, '0');
   return '${months[date.month - 1]} ${date.day}, ${two(date.hour)}:${two(date.minute)}';

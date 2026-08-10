@@ -69,6 +69,7 @@ class _RecentScanCardState extends State<RecentScanCard>
       await ScanHistoryService.deleteScan(
         widget.scan.id,
         imageUrl: widget.scan.imageUrl,
+        imagePath: widget.scan.imagePath,
       );
       if (mounted) {
         PlantivaFeedback.show(
@@ -103,6 +104,7 @@ class _RecentScanCardState extends State<RecentScanCard>
           isHealthy: scan.isHealthy,
           imagePath: scan.imagePath,
           imageUrl: scan.imageUrl,
+          imageBase64: scan.imageBase64,
           savedScanId: scan.id,
         ),
       ),
@@ -156,6 +158,7 @@ class _RecentScanCardState extends State<RecentScanCard>
                   child: ScanImageWidget(
                     imagePath: scan.imagePath,
                     imageUrl: scan.imageUrl,
+                    imageBase64: scan.imageBase64,
                     width: 96,
                     height: 96,
                     borderRadius: 0,

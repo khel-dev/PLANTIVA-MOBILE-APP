@@ -202,14 +202,17 @@ class _TopGreeting extends StatelessWidget {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Hello $firstName!',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: AppColors.green,
-                        fontSize: 30,
-                        fontWeight: FontWeight.w800,
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Hello $firstName!',
+                        maxLines: 1,
+                        style: const TextStyle(
+                          color: AppColors.green,
+                          fontSize: 30,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -277,8 +280,15 @@ class _HeroScanCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final compact = screenWidth < 390;
+    final cardHeight = (screenWidth * 0.64).clamp(218.0, 255.0).toDouble();
+    final titleSize = compact ? 32.0 : 39.0;
+    final subtitleSize = compact ? 15.0 : 17.0;
+    final buttonHeight = compact ? 48.0 : 54.0;
+
     return Container(
-      height: 255,
+      height: cardHeight,
       width: double.infinity,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(26),
@@ -319,26 +329,30 @@ class _HeroScanCard extends StatelessWidget {
               ),
             ),
             const Spacer(),
-            const Text(
+            Text(
               'Scan Banana Leaf',
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: Colors.white,
-                fontSize: 39,
+                fontSize: titleSize,
                 fontWeight: FontWeight.w800,
               ),
             ),
-            const SizedBox(height: 7),
-            const Text(
+            SizedBox(height: compact ? 5 : 7),
+            Text(
               'Detect diseases instantly and get\nsmart treatment recommendations.',
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: Colors.white70,
-                fontSize: 17,
+                fontSize: subtitleSize,
                 height: 1.3,
               ),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: compact ? 12 : 16),
             SizedBox(
-              height: 54,
+              height: buttonHeight,
               child: ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFFFC400),
@@ -353,7 +367,9 @@ class _HeroScanCard extends StatelessWidget {
                 icon: const Icon(Icons.qr_code_scanner_rounded),
                 label: const Text(
                   'Start Scan',
-                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 19),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
                 ),
               ),
             ),
@@ -379,13 +395,14 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final compact = MediaQuery.sizeOf(context).width < 390;
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(20),
         child: Ink(
-          padding: const EdgeInsets.all(14),
+          padding: EdgeInsets.all(compact ? 12 : 14),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(20),
@@ -404,8 +421,8 @@ class _StatCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                width: 38,
-                height: 38,
+                width: compact ? 36 : 38,
+                height: compact ? 36 : 38,
                 decoration: BoxDecoration(
                   color: const Color(0xFFE8F5E9),
                   borderRadius: BorderRadius.circular(10),
@@ -415,15 +432,22 @@ class _StatCard extends StatelessWidget {
               const SizedBox(height: 10),
               Text(
                 value,
-                style: const TextStyle(
-                  fontSize: 28,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: compact ? 25 : 28,
                   fontWeight: FontWeight.w800,
-                  color: Color(0xFF222522),
+                  color: const Color(0xFF222522),
                 ),
               ),
               Text(
                 label,
-                style: const TextStyle(color: Color(0xFF7B817E), fontSize: 14),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: const Color(0xFF7B817E),
+                  fontSize: compact ? 13 : 14,
+                ),
               ),
               if (onTap != null) ...[
                 const SizedBox(height: 6),

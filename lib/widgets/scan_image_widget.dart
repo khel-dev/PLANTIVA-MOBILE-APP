@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -9,6 +11,7 @@ class ScanImageWidget extends StatelessWidget {
     super.key,
     this.imagePath,
     this.imageUrl,
+    this.imageBase64,
     required this.width,
     required this.height,
     this.borderRadius = 12,
@@ -17,6 +20,7 @@ class ScanImageWidget extends StatelessWidget {
 
   final String? imagePath;
   final String? imageUrl;
+  final String? imageBase64;
   final double width;
   final double height;
   final double borderRadius;
@@ -34,15 +38,17 @@ class ScanImageWidget extends StatelessWidget {
         height: height,
         fit: BoxFit.cover,
       );
-    } else if (imageUrl != null && imageUrl!.isNotEmpty) {
+    } else if (imageUrl != null && imageUrl!.trim().isNotEmpty) {
       image = CachedNetworkImage(
-        imageUrl: imageUrl!,
+        imageUrl: imageUrl!.trim(),
         width: width,
         height: height,
         fit: BoxFit.cover,
         placeholder: (_, __) => _placeholder(),
         errorWidget: (_, __, ___) => _fallback(),
       );
+    } else if (imageBase64 != null && imageBase64!.trim().isNotEmpty) {
+      image = _memoryImageFromBase64(imageBase64!.trim()) ?? _fallback();
     } else {
       image = _fallback();
     }
@@ -75,6 +81,23 @@ class ScanImageWidget extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Widget? _memoryImageFromBase64(String value) {
+    try {
+      final normalized = value.contains(',') ? value.split(',').last : value;
+      final Uint8List bytes = base64Decode(normalized);
+      return Image.memory(
+        bytes,
+        width: width,
+        height: height,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => _fallback(),
+      );
+    } catch (e) {
+      debugPrint('PLANTIVA invalid scan image_base64 skipped: $e');
+      return null;
+    }
   }
 }
 
