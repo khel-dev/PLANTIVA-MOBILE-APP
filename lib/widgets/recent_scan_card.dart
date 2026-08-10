@@ -6,6 +6,7 @@ import 'package:flutter_plantiva/screens/scan_details_screen.dart';
 import 'package:flutter_plantiva/screens/treatment_recommendation_screen.dart';
 import 'package:flutter_plantiva/services/scan_history_service.dart';
 import 'package:flutter_plantiva/utils/page_transitions.dart';
+import 'package:flutter_plantiva/utils/plantiva_feedback.dart';
 import 'package:flutter_plantiva/widgets/scan_image_widget.dart';
 
 class RecentScanCard extends StatefulWidget {
@@ -70,8 +71,10 @@ class _RecentScanCardState extends State<RecentScanCard>
         imageUrl: widget.scan.imageUrl,
       );
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Scan deleted.')),
+        PlantivaFeedback.show(
+          context,
+          message: 'Scan deleted successfully.',
+          type: PlantivaFeedbackType.success,
         );
       }
     }

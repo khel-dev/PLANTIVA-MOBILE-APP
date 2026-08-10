@@ -7,6 +7,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:flutter_plantiva/config/app_colors.dart';
 import 'package:flutter_plantiva/models/scan_record.dart';
 import 'package:flutter_plantiva/services/scan_history_service.dart';
+import 'package:flutter_plantiva/utils/plantiva_feedback.dart';
 import 'package:flutter_plantiva/utils/scan_diagnosis_helper.dart';
 import 'package:flutter_plantiva/widgets/scan_image_widget.dart';
 
@@ -63,7 +64,7 @@ class _ScanDetailsScreenState extends State<ScanDetailsScreen> {
         : 'Unknown date';
     final text = '''
 PLANTIVA Diagnosis Report
-━━━━━━━━━━━━━━━━━━━━
+--------------------
 Disease: ${scan.label}
 Confidence: ${scan.confidence}
 Severity: ${scan.effectiveSeverity}
@@ -75,52 +76,76 @@ ${scan.effectiveSummary}
 Recommendations:
 ${scan.effectiveRecommendations}
 ''';
-    await Share.share(text, subject: 'PLANTIVA Scan Report — ${scan.label}');
+    await Share.share(text, subject: 'PLANTIVA Scan Report - ${scan.label}');
   }
 
   Future<void> _savePdf() async {
-    final pdf = pw.Document();
-    final date = scan.createdAt != null
-        ? DateFormat('MMMM d, yyyy • h:mm a').format(scan.createdAt!)
-        : 'Unknown';
+    try {
+      final pdf = pw.Document();
+      final date = scan.createdAt != null
+          ? DateFormat('MMMM d, yyyy - h:mm a').format(scan.createdAt!)
+          : 'Unknown';
 
-    pdf.addPage(
-      pw.MultiPage(
-        pageFormat: PdfPageFormat.a4,
-        build: (context) => [
-          pw.Header(
-            level: 0,
-            child: pw.Text(
-              'PLANTIVA Diagnosis Report',
-              style: pw.TextStyle(
-                fontSize: 22,
-                fontWeight: pw.FontWeight.bold,
-                color: PdfColors.green800,
+      pdf.addPage(
+        pw.MultiPage(
+          pageFormat: PdfPageFormat.a4,
+          build: (context) => [
+            pw.Header(
+              level: 0,
+              child: pw.Text(
+                'PLANTIVA Diagnosis Report',
+                style: pw.TextStyle(
+                  fontSize: 22,
+                  fontWeight: pw.FontWeight.bold,
+                  color: PdfColors.green800,
+                ),
               ),
             ),
-          ),
-          pw.SizedBox(height: 12),
-          pw.Text('Disease: ${scan.label}',
-              style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
-          pw.Text('Confidence: ${scan.confidence}'),
-          pw.Text('Severity: ${scan.effectiveSeverity}'),
-          pw.Text('Scanned: $date'),
-          pw.SizedBox(height: 16),
-          pw.Text('Summary',
-              style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-          pw.Text(scan.effectiveSummary),
-          pw.SizedBox(height: 12),
-          pw.Text('Recommendations',
-              style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-          pw.Text(scan.effectiveRecommendations),
-        ],
-      ),
-    );
+            pw.SizedBox(height: 12),
+            pw.Text(
+              'Disease: ${scan.label}',
+              style: pw.TextStyle(
+                fontSize: 16,
+                fontWeight: pw.FontWeight.bold,
+              ),
+            ),
+            pw.Text('Confidence: ${scan.confidence}'),
+            pw.Text('Severity: ${scan.effectiveSeverity}'),
+            pw.Text('Scanned: $date'),
+            pw.SizedBox(height: 16),
+            pw.Text(
+              'Summary',
+              style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+            ),
+            pw.Text(scan.effectiveSummary),
+            pw.SizedBox(height: 12),
+            pw.Text(
+              'Recommendations',
+              style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+            ),
+            pw.Text(scan.effectiveRecommendations),
+          ],
+        ),
+      );
 
-    await Printing.layoutPdf(
-      onLayout: (format) async => pdf.save(),
-      name: 'plantiva_scan_${scan.id}',
-    );
+      await Printing.layoutPdf(
+        onLayout: (format) async => pdf.save(),
+        name: 'plantiva_scan_${scan.id}',
+      );
+      if (!mounted) return;
+      PlantivaFeedback.show(
+        context,
+        message: 'PDF generated successfully.',
+        type: PlantivaFeedbackType.success,
+      );
+    } catch (_) {
+      if (!mounted) return;
+      PlantivaFeedback.show(
+        context,
+        message: 'Unable to generate PDF. Please try again.',
+        type: PlantivaFeedbackType.error,
+      );
+    }
   }
 
   Future<void> _deleteScan() async {
@@ -144,12 +169,36 @@ ${scan.effectiveRecommendations}
       ),
     );
     if (ok != true || !mounted) return;
-    await ScanHistoryService.deleteScan(scan.id, imageUrl: scan.imageUrl);
-    if (mounted) {
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Scan deleted.')),
+    try {
+      await ScanHistoryService.deleteScan(
+        scan.id,
+        imageUrl: scan.imageUrl,
+        imagePath: scan.imagePath,
       );
+      if (mounted) {
+        Navigator.pop(context);
+        PlantivaFeedback.show(
+          context,
+          message: 'Scan deleted successfully.',
+          type: PlantivaFeedbackType.success,
+        );
+      }
+    } on ScanPersistenceException catch (e) {
+      if (mounted) {
+        PlantivaFeedback.show(
+          context,
+          message: e.userMessage,
+          type: PlantivaFeedbackType.error,
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        PlantivaFeedback.show(
+          context,
+          message: 'Unable to delete scan. Please try again.',
+          type: PlantivaFeedbackType.error,
+        );
+      }
     }
   }
 
@@ -264,7 +313,8 @@ ${scan.effectiveRecommendations}
                                   vertical: 5,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: AppColors.green.withValues(alpha: 0.12),
+                                  color:
+                                      AppColors.green.withValues(alpha: 0.12),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Text(
@@ -431,7 +481,8 @@ ${scan.effectiveRecommendations}
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
+          Text(label,
+              style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
           const SizedBox(height: 6),
           Text(
             value,
@@ -531,7 +582,8 @@ ${scan.effectiveRecommendations}
           Expanded(
             child: OutlinedButton.icon(
               onPressed: _deleteScan,
-              icon: const Icon(Icons.delete_outline, size: 18, color: Colors.red),
+              icon:
+                  const Icon(Icons.delete_outline, size: 18, color: Colors.red),
               label: const Text('Delete', style: TextStyle(color: Colors.red)),
             ),
           ),

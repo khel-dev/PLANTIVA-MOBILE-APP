@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_plantiva/screens/homepage.dart';
 import 'package:flutter_plantiva/screens/treatment_recommendation_screen.dart';
+import 'package:flutter_plantiva/utils/plantiva_feedback.dart';
 
 class ResultScreen extends StatelessWidget {
   final String imagePath;
@@ -397,12 +398,11 @@ class ResultScreen extends StatelessWidget {
                                 await Clipboard.setData(
                                     ClipboardData(text: text));
                                 if (!context.mounted) return;
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      'Diagnosis copied — paste into SMS, Messenger, or notes.',
-                                    ),
-                                  ),
+                                PlantivaFeedback.show(
+                                  context,
+                                  message:
+                                      'Diagnosis copied - paste into SMS, Messenger, or notes.',
+                                  type: PlantivaFeedbackType.success,
                                 );
                               },
                               child: const SizedBox(
@@ -807,13 +807,11 @@ class ResultScreen extends StatelessWidget {
                                 child: ElevatedButton.icon(
                                   onPressed: () {
                                     if (savedScanId == null) {
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
-                                        const SnackBar(
-                                          content: Text(
+                                      PlantivaFeedback.show(
+                                        context,
+                                        message:
                                             'This scan was not saved. Please check your connection or Firestore rules.',
-                                          ),
-                                        ),
+                                        type: PlantivaFeedbackType.warning,
                                       );
                                     }
                                   },

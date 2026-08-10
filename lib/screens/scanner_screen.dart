@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_plantiva/config/app_colors.dart';
+import 'package:flutter_plantiva/utils/plantiva_feedback.dart';
 import '../services/classifier_service.dart';
 import 'scan_loading_screen.dart';
 
@@ -55,14 +56,12 @@ class _ScannerScreenState extends State<ScannerScreen>
 
   Future<void> _pickImage(ImageSource source) async {
     if (_phase != _ModelPhase.ready) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            _phase == _ModelPhase.loading
-                ? 'AI model is still loading…'
-                : 'Fix the model issue before scanning.',
-          ),
-        ),
+      PlantivaFeedback.show(
+        context,
+        message: _phase == _ModelPhase.loading
+            ? 'AI model is still loading...'
+            : 'Fix the model issue before scanning.',
+        type: PlantivaFeedbackType.warning,
       );
       return;
     }

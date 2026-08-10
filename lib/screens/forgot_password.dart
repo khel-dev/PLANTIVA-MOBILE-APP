@@ -2,6 +2,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_plantiva/config/app_colors.dart';
 import 'package:flutter_plantiva/services/auth_service.dart';
+import 'package:flutter_plantiva/utils/auth_error_messages.dart';
+import 'package:flutter_plantiva/utils/plantiva_feedback.dart';
 import 'package:flutter_plantiva/utils/validators.dart';
 import 'package:flutter_plantiva/widgets/header_image.dart';
 
@@ -25,6 +27,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   }
 
   Future<void> _sendReset() async {
+    if (_loading) return;
     if (!_formKey.currentState!.validate()) {
       return;
     }
@@ -34,26 +37,26 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
         email: _emailController.text.trim(),
       );
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Password reset link sent. Please check your email inbox.',
-          ),
-        ),
+      PlantivaFeedback.show(
+        context,
+        message:
+            'If an account exists for this email, a password reset link has been requested.',
+        type: PlantivaFeedbackType.success,
       );
       Navigator.of(context).pop();
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
-      final message = switch (e.code) {
-        'invalid-email' => 'Please enter a valid email address.',
-        'user-not-found' =>
-          'No account was found for this email address.',
-        'network-request-failed' =>
-          'Network error. Please check your connection and try again.',
-        _ => e.message ?? 'Unable to send password reset link.',
-      };
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
+      PlantivaFeedback.show(
+        context,
+        message: AuthErrorMessages.forgotPassword(e),
+        type: PlantivaFeedbackType.error,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      PlantivaFeedback.show(
+        context,
+        message: AuthErrorMessages.forgotPassword(e),
+        type: PlantivaFeedbackType.error,
       );
     } finally {
       if (mounted) setState(() => _loading = false);

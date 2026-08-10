@@ -59,10 +59,10 @@ class _CropWellnessScreenState extends State<CropWellnessScreen>
   @override
   Widget build(BuildContext context) {
     final analytics = _service.buildAnalytics(_allScans, AnalyticsPeriod.month);
-    final fmt = DateFormat('MMM d, yyyy • h:mm a');
+    final fmt = DateFormat('MMM d, yyyy - h:mm a');
 
     return Scaffold(
-      backgroundColor: const Color(0xFFE7F5E9),
+      backgroundColor: const Color(0xFFF4F7F3),
       body: SafeArea(
         child: _loading
             ? const Center(child: CircularProgressIndicator())
@@ -89,7 +89,8 @@ class _CropWellnessScreenState extends State<CropWellnessScreen>
                           const SizedBox(height: 12),
                           ..._wellnessInsights(analytics).map(_glassInsight),
                           const SizedBox(height: 20),
-                          _buildSection('Recommended Healthy Farming Practices'),
+                          _buildSection(
+                              'Recommended Healthy Farming Practices'),
                           const SizedBox(height: 12),
                           ..._practiceCards(),
                           const SizedBox(height: 20),
@@ -147,10 +148,10 @@ class _CropWellnessScreenState extends State<CropWellnessScreen>
     final rate = _healthyRate;
     final delta = analytics.monthlyHealthyDelta;
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF1B6D2A), Color(0xFF2FBF4B)],
+          colors: [Color(0xFF1B6D2A), Color(0xFF128C7E)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -163,68 +164,96 @@ class _CropWellnessScreenState extends State<CropWellnessScreen>
           ),
         ],
       ),
-      child: Column(
-        children: [
-          SizedBox(
-            width: 130,
-            height: 130,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                CircularProgressIndicator(
-                  value: rate / 100,
-                  strokeWidth: 10,
-                  backgroundColor: Colors.white24,
-                  valueColor: const AlwaysStoppedAnimation(Colors.white),
-                ),
-                Column(
-                  mainAxisSize: MainAxisSize.min,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final visualSize =
+              (constraints.maxWidth * 0.42).clamp(118.0, 150.0).toDouble();
+          return Column(
+            children: [
+              SizedBox.square(
+                dimension: visualSize,
+                child: Stack(
+                  alignment: Alignment.center,
                   children: [
-                    Text(
-                      '${rate.round()}%',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 32,
-                        fontWeight: FontWeight.w800,
+                    SizedBox.square(
+                      dimension: visualSize,
+                      child: CircularProgressIndicator(
+                        value: rate / 100,
+                        strokeWidth: visualSize < 125 ? 8 : 10,
+                        backgroundColor: Colors.white24,
+                        valueColor: const AlwaysStoppedAnimation(Colors.white),
                       ),
                     ),
-                    const Text(
-                      'Healthy',
-                      style: TextStyle(color: Colors.white70, fontSize: 13),
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          '${rate.round()}%',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: visualSize < 125 ? 28 : 32,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const Text(
+                          'Healthy',
+                          style: TextStyle(color: Colors.white70, fontSize: 13),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            '${_healthyScans.length} healthy plants detected',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 17,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                delta >= 0 ? Icons.trending_up_rounded : Icons.trending_down_rounded,
-                color: Colors.white,
-                size: 18,
               ),
-              const SizedBox(width: 6),
+              const SizedBox(height: 16),
               Text(
-                delta >= 0
-                    ? '+${delta.abs().round()}% vs last month'
-                    : '${delta.round()}% vs last month',
-                style: const TextStyle(color: Colors.white70, fontSize: 14),
+                '${_healthyScans.length} healthy plants detected',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 7,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      delta >= 0
+                          ? Icons.trending_up_rounded
+                          : Icons.trending_down_rounded,
+                      color: const Color(0xFFFFD54F),
+                      size: 18,
+                    ),
+                    const SizedBox(width: 6),
+                    Flexible(
+                      child: Text(
+                        delta >= 0
+                            ? '+${delta.abs().round()}% vs last month'
+                            : '${delta.round()}% vs last month',
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
-          ),
-        ],
+          );
+        },
       ),
     );
   }
@@ -243,17 +272,25 @@ class _CropWellnessScreenState extends State<CropWellnessScreen>
   Widget _buildGallery(DateFormat fmt) {
     if (_healthyScans.isEmpty) return _emptyState();
 
-    return SizedBox(
-      height: 200,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: _healthyScans.length.clamp(0, 12),
-        separatorBuilder: (_, __) => const SizedBox(width: 12),
-        itemBuilder: (context, i) {
-          final s = _healthyScans[i];
-          return _HealthyScanCard(scan: s, fmt: fmt);
-        },
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final cardWidth =
+            (constraints.maxWidth * 0.48).clamp(150.0, 190.0).toDouble();
+        final itemCount = _healthyScans.length > 12 ? 12 : _healthyScans.length;
+        return SizedBox(
+          height: 212,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.only(right: 4),
+            itemCount: itemCount,
+            separatorBuilder: (_, __) => const SizedBox(width: 12),
+            itemBuilder: (context, i) {
+              final s = _healthyScans[i];
+              return _HealthyScanCard(scan: s, fmt: fmt, width: cardWidth);
+            },
+          ),
+        );
+      },
     );
   }
 
@@ -283,64 +320,72 @@ class _CropWellnessScreenState extends State<CropWellnessScreen>
 
     return Column(
       children: [
-        Row(
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
           children: ['Weekly', 'Monthly', 'Yearly'].map((f) {
             final active = _trendFilter == f;
-            return Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: ChoiceChip(
-                label: Text(f),
-                selected: active,
-                onSelected: (_) => setState(() => _trendFilter = f),
-                selectedColor: AppColors.green.withValues(alpha: 0.15),
-              ),
+            return ChoiceChip(
+              label: Text(f),
+              selected: active,
+              onSelected: (_) => setState(() => _trendFilter = f),
+              selectedColor: const Color(0xFFDDF4E7),
+              backgroundColor: Colors.white,
+              checkmarkColor: AppColors.green,
             );
           }).toList(),
         ),
         const SizedBox(height: 12),
-        Container(
-          height: 200,
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(22),
-          ),
-          child: LineChart(
-            LineChartData(
-              gridData: FlGridData(
-                show: true,
-                drawVerticalLine: false,
-                getDrawingHorizontalLine: (v) => FlLine(
-                  color: Colors.grey.shade200,
-                ),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final chartHeight =
+                (constraints.maxWidth * 0.58).clamp(190.0, 240.0).toDouble();
+            return Container(
+              height: chartHeight,
+              padding: const EdgeInsets.fromLTRB(14, 18, 18, 14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(color: const Color(0xFFE1E8E3)),
               ),
-              titlesData: const FlTitlesData(
-                rightTitles: AxisTitles(
-                  sideTitles: SideTitles(showTitles: false),
-                ),
-                topTitles: AxisTitles(
-                  sideTitles: SideTitles(showTitles: false),
-                ),
-                bottomTitles: AxisTitles(
-                  sideTitles: SideTitles(showTitles: false),
-                ),
-              ),
-              borderData: FlBorderData(show: false),
-              lineBarsData: [
-                LineChartBarData(
-                  spots: spots,
-                  isCurved: true,
-                  color: const Color(0xFF2E7D32),
-                  barWidth: 3,
-                  dotData: const FlDotData(show: true),
-                  belowBarData: BarAreaData(
+              child: LineChart(
+                LineChartData(
+                  gridData: FlGridData(
                     show: true,
-                    color: const Color(0xFF2E7D32).withValues(alpha: 0.12),
+                    drawVerticalLine: false,
+                    getDrawingHorizontalLine: (v) => FlLine(
+                      color: Colors.grey.shade200,
+                    ),
                   ),
+                  titlesData: const FlTitlesData(
+                    rightTitles: AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
+                    topTitles: AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
+                    bottomTitles: AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
+                  ),
+                  borderData: FlBorderData(show: false),
+                  lineBarsData: [
+                    LineChartBarData(
+                      spots: spots,
+                      isCurved: true,
+                      color: const Color(0xFF128C7E),
+                      barWidth: 3,
+                      dotData: const FlDotData(show: true),
+                      belowBarData: BarAreaData(
+                        show: true,
+                        color: const Color(0xFF128C7E).withValues(alpha: 0.12),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         ),
       ],
     );
@@ -378,13 +423,13 @@ class _CropWellnessScreenState extends State<CropWellnessScreen>
         boxShadow: [
           BoxShadow(
             blurRadius: 12,
-            color: AppColors.green.withValues(alpha: 0.08),
+            color: const Color(0xFF128C7E).withValues(alpha: 0.08),
           ),
         ],
       ),
       child: Row(
         children: [
-          const Icon(Icons.spa_rounded, color: AppColors.green),
+          const Icon(Icons.spa_rounded, color: Color(0xFF128C7E)),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
@@ -412,7 +457,7 @@ class _CropWellnessScreenState extends State<CropWellnessScreen>
       (
         Icons.wb_sunny_outlined,
         'Monitor environmental conditions',
-        'Track humidity and rainfall — key drivers of fungal diseases.',
+        'Track humidity and rainfall - key drivers of fungal diseases.',
       ),
       (
         Icons.document_scanner_outlined,
@@ -436,10 +481,10 @@ class _CropWellnessScreenState extends State<CropWellnessScreen>
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE8F5E9),
+                    color: const Color(0xFFFFF8E1),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(p.$1, color: AppColors.green),
+                  child: Icon(p.$1, color: const Color(0xFFB7791F)),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -483,7 +528,7 @@ class _CropWellnessScreenState extends State<CropWellnessScreen>
           ),
           child: Row(
             children: [
-              _scanThumb(s, 56),
+              _scanThumb(s, 56, 56),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -504,7 +549,8 @@ class _CropWellnessScreenState extends State<CropWellnessScreen>
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
                   color: const Color(0xFFE8F5E9),
                   borderRadius: BorderRadius.circular(10),
@@ -529,49 +575,62 @@ class _CropWellnessScreenState extends State<CropWellnessScreen>
     final badges = [
       ('First Healthy Detection', count >= 1, Icons.emoji_events_outlined),
       ('10 Healthy Plants', count >= 10, Icons.forest_outlined),
-      ('Consistent Weekly Scanner', _allScans.length >= 4, Icons.calendar_month),
+      (
+        'Consistent Weekly Scanner',
+        _allScans.length >= 4,
+        Icons.calendar_month
+      ),
       ('Crop Wellness Advocate', count >= 5, Icons.volunteer_activism_outlined),
     ];
 
-    return Wrap(
-      spacing: 10,
-      runSpacing: 10,
-      children: badges.map((b) {
-        final unlocked = b.$2;
-        return AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
-          width: (MediaQuery.of(context).size.width - 52) / 2,
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: unlocked ? Colors.white : Colors.grey.shade100,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(
-              color: unlocked
-                  ? AppColors.brightGreen.withValues(alpha: 0.4)
-                  : Colors.grey.shade300,
-            ),
-          ),
-          child: Column(
-            children: [
-              Icon(
-                b.$3,
-                size: 32,
-                color: unlocked ? AppColors.green : Colors.grey.shade400,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                b.$1,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 12,
-                  color: unlocked ? const Color(0xFF232625) : Colors.grey,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final cardWidth = constraints.maxWidth < 340
+            ? constraints.maxWidth
+            : (constraints.maxWidth - 10) / 2;
+        return Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: badges.map((b) {
+            final unlocked = b.$2;
+            return AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              width: cardWidth,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: unlocked ? Colors.white : Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                  color: unlocked
+                      ? const Color(0xFF128C7E).withValues(alpha: 0.35)
+                      : Colors.grey.shade300,
                 ),
               ),
-            ],
-          ),
+              child: Column(
+                children: [
+                  Icon(
+                    b.$3,
+                    size: 32,
+                    color: unlocked
+                        ? const Color(0xFF128C7E)
+                        : Colors.grey.shade400,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    b.$1,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 12,
+                      color: unlocked ? const Color(0xFF232625) : Colors.grey,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
         );
-      }).toList(),
+      },
     );
   }
 
@@ -589,7 +648,8 @@ class _CropWellnessScreenState extends State<CropWellnessScreen>
           Icon(Icons.eco_outlined, size: 48, color: Colors.grey.shade400),
           const SizedBox(height: 12),
           Text(
-            msg ?? 'No healthy scans yet. Scan banana leaves to populate your wellness gallery.',
+            msg ??
+                'No healthy scans yet. Scan banana leaves to populate your wellness gallery.',
             textAlign: TextAlign.center,
             style: TextStyle(color: Colors.grey.shade600, height: 1.45),
           ),
@@ -600,15 +660,20 @@ class _CropWellnessScreenState extends State<CropWellnessScreen>
 }
 
 class _HealthyScanCard extends StatelessWidget {
-  const _HealthyScanCard({required this.scan, required this.fmt});
+  const _HealthyScanCard({
+    required this.scan,
+    required this.fmt,
+    required this.width,
+  });
 
   final ScanRecord scan;
   final DateFormat fmt;
+  final double width;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 160,
+      width: width,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
@@ -624,7 +689,7 @@ class _HealthyScanCard extends StatelessWidget {
         children: [
           ClipRRect(
             borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-            child: _scanThumb(scan, 110),
+            child: _scanThumb(scan, width, 110),
           ),
           Padding(
             padding: const EdgeInsets.all(10),
@@ -632,7 +697,8 @@ class _HealthyScanCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: const Color(0xFFE8F5E9),
                     borderRadius: BorderRadius.circular(8),
@@ -674,11 +740,11 @@ class _HealthyScanCard extends StatelessWidget {
   }
 }
 
-Widget _scanThumb(ScanRecord scan, double size) {
+Widget _scanThumb(ScanRecord scan, double width, double height) {
   return ScanImageWidget(
     imagePath: scan.imagePath,
     imageUrl: scan.imageUrl,
-    width: size,
-    height: size,
+    width: width,
+    height: height,
   );
 }

@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_plantiva/config/app_colors.dart';
 import 'package:flutter_plantiva/services/profile_service.dart';
+import 'package:flutter_plantiva/utils/plantiva_feedback.dart';
 
 class NotificationSettingsScreen extends StatefulWidget {
   const NotificationSettingsScreen({super.key});
@@ -29,10 +30,8 @@ class _NotificationSettingsScreenState
   Future<void> _load() async {
     final id = _service.uid;
     if (id == null) return;
-    final doc = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(id)
-        .get();
+    final doc =
+        await FirebaseFirestore.instance.collection('users').doc(id).get();
     final s = doc.data()?['notificationSettings'] as Map<String, dynamic>?;
     if (s != null && mounted) {
       setState(() {
@@ -55,11 +54,11 @@ class _NotificationSettingsScreenState
       'educationalTips': _tips,
     });
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Settings saved'),
-          duration: Duration(seconds: 1),
-        ),
+      PlantivaFeedback.show(
+        context,
+        message: 'Settings saved.',
+        type: PlantivaFeedbackType.success,
+        duration: const Duration(seconds: 1),
       );
     }
   }

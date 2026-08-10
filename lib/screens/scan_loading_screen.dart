@@ -147,96 +147,125 @@ class _ScanLoadingScreenState extends State<ScanLoadingScreen>
                   ),
                   const SizedBox(height: 28),
                   Expanded(
-                    child: Center(
-                      child: AnimatedBuilder(
-                        animation: Listenable.merge([
-                          _scanController,
-                          _pulseController,
-                        ]),
-                        builder: (context, _) {
-                          return Container(
-                            constraints: const BoxConstraints(maxWidth: 430),
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.08),
-                              borderRadius: BorderRadius.circular(32),
-                              border: Border.all(
-                                color: AppColors.brightGreen.withValues(
-                                  alpha: 0.25 + (_pulse.value * 0.25),
-                                ),
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: AppColors.brightGreen.withValues(
-                                    alpha: 0.14 + (_pulse.value * 0.12),
-                                  ),
-                                  blurRadius: 32,
-                                  spreadRadius: 2,
-                                ),
-                              ],
-                            ),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                _LeafScanner(
-                                  imagePath: widget.imagePath,
-                                  progress: _scanController.value,
-                                ),
-                                const SizedBox(height: 22),
-                                if (_error == null) ...[
-                                  const _LeafProgress(),
-                                  const SizedBox(height: 16),
-                                  AnimatedSwitcher(
-                                    duration: const Duration(milliseconds: 250),
-                                    child: Text(
-                                      _messages[_messageIndex],
-                                      key: ValueKey(_messageIndex),
-                                      textAlign: TextAlign.center,
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w800,
-                                        fontSize: 20,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    'Please wait while the on-device AI checks the captured leaf.',
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final compact = constraints.maxHeight < 520;
+                        final scannerHeight =
+                            (constraints.maxHeight * (compact ? 0.44 : 0.5))
+                                .clamp(180.0, 310.0)
+                                .toDouble();
+                        final scannerWidth = scannerHeight * 0.92;
+
+                        return SingleChildScrollView(
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                                minHeight: constraints.maxHeight),
+                            child: Center(
+                              child: AnimatedBuilder(
+                                animation: Listenable.merge([
+                                  _scanController,
+                                  _pulseController,
+                                ]),
+                                builder: (context, _) {
+                                  return Container(
+                                    constraints:
+                                        const BoxConstraints(maxWidth: 430),
+                                    padding: EdgeInsets.all(compact ? 14 : 16),
+                                    decoration: BoxDecoration(
                                       color:
-                                          Colors.white.withValues(alpha: 0.68),
-                                      height: 1.45,
+                                          Colors.white.withValues(alpha: 0.08),
+                                      borderRadius: BorderRadius.circular(32),
+                                      border: Border.all(
+                                        color: AppColors.brightGreen.withValues(
+                                          alpha: 0.25 + (_pulse.value * 0.25),
+                                        ),
+                                      ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color:
+                                              AppColors.brightGreen.withValues(
+                                            alpha: 0.14 + (_pulse.value * 0.12),
+                                          ),
+                                          blurRadius: 32,
+                                          spreadRadius: 2,
+                                        ),
+                                      ],
                                     ),
-                                  ),
-                                ] else ...[
-                                  const Icon(
-                                    Icons.error_outline,
-                                    color: Colors.redAccent,
-                                    size: 42,
-                                  ),
-                                  const SizedBox(height: 12),
-                                  Text(
-                                    _error!,
-                                    textAlign: TextAlign.center,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w700,
-                                      height: 1.45,
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        SizedBox(
+                                          width: scannerWidth,
+                                          height: scannerHeight,
+                                          child: _LeafScanner(
+                                            imagePath: widget.imagePath,
+                                            progress: _scanController.value,
+                                          ),
+                                        ),
+                                        SizedBox(height: compact ? 16 : 22),
+                                        if (_error == null) ...[
+                                          const _LeafProgress(),
+                                          SizedBox(height: compact ? 12 : 16),
+                                          AnimatedSwitcher(
+                                            duration: const Duration(
+                                              milliseconds: 250,
+                                            ),
+                                            child: Text(
+                                              _messages[_messageIndex],
+                                              key: ValueKey(_messageIndex),
+                                              textAlign: TextAlign.center,
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.w800,
+                                                fontSize: 20,
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Text(
+                                            'Please wait while the on-device AI checks the captured leaf.',
+                                            textAlign: TextAlign.center,
+                                            style: TextStyle(
+                                              color: Colors.white
+                                                  .withValues(alpha: 0.68),
+                                              height: 1.45,
+                                            ),
+                                          ),
+                                        ] else ...[
+                                          const Icon(
+                                            Icons.error_outline,
+                                            color: Colors.redAccent,
+                                            size: 42,
+                                          ),
+                                          const SizedBox(height: 12),
+                                          Text(
+                                            _error!,
+                                            textAlign: TextAlign.center,
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.w700,
+                                              height: 1.45,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 16),
+                                          ElevatedButton.icon(
+                                            onPressed: () =>
+                                                Navigator.pop(context),
+                                            icon: const Icon(
+                                              Icons.camera_alt_outlined,
+                                            ),
+                                            label: const Text('Scan Again'),
+                                          ),
+                                        ],
+                                      ],
                                     ),
-                                  ),
-                                  const SizedBox(height: 16),
-                                  ElevatedButton.icon(
-                                    onPressed: () => Navigator.pop(context),
-                                    icon: const Icon(Icons.camera_alt_outlined),
-                                    label: const Text('Scan Again'),
-                                  ),
-                                ],
-                              ],
+                                  );
+                                },
+                              ),
                             ),
-                          );
-                        },
-                      ),
+                          ),
+                        );
+                      },
                     ),
                   ),
                 ],

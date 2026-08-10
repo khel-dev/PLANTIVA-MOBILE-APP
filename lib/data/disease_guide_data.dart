@@ -14,6 +14,11 @@ class DiseaseGuideData {
     moko,
     panama,
     yellowSigatoka,
+    bunchyTop,
+    anthracnose,
+    bananaFreckle,
+    crownRot,
+    weevilBorer,
   ];
 
   static DiseaseGuideItem? byId(String id) {
@@ -700,5 +705,516 @@ class DiseaseGuideData {
     ],
     relatedIds: ['black_sigatoka', 'yellow_sigatoka'],
     searchKeywords: ['healthy', 'green', 'normal', 'baseline', 'no disease'],
+  );
+
+  static const bunchyTop = DiseaseGuideItem(
+    id: 'bunchy_top',
+    name: 'Banana Bunchy Top Disease',
+    shortName: 'Bunchy Top',
+    category: DiseaseCategory.viral,
+    risk: DiseaseRisk.high,
+    imageUrl: 'assets/images/banana_bunchy_top.jpg',
+    fallbackAsset: _fallback,
+    scientificName: 'Banana bunchy top virus (BBTV)',
+    isAiDetectable: false,
+    modelLabel: null,
+    summary:
+        'A highly destructive banana virus disease that can severely stunt plants and make infected mats unproductive.',
+    overview:
+        'Banana Bunchy Top Disease is caused by Banana bunchy top virus (BBTV). It is spread mainly by the banana aphid, Pentalonia nigronervosa, and by infected planting material such as suckers from diseased mats.',
+    whyDangerous:
+        'Infected plants can develop a tight bunching or rosette appearance, become severely stunted, and fail to produce normally. There is no curative field treatment for BBTV, so prevention, reporting, and removal under agricultural guidance are critical.',
+    symptoms: [
+      DiseaseSymptom(
+        title: 'Dot-dash streaks',
+        description:
+            'Dark green dot-dash or Morse code-like streaks may appear on leaf veins, midribs, and petioles.',
+        icon: Icons.short_text_outlined,
+      ),
+      DiseaseSymptom(
+        title: 'Bunched leaves',
+        description:
+            'Advanced plants develop narrow, upright, progressively shorter leaves that form a rosette.',
+        icon: Icons.local_florist_outlined,
+      ),
+      DiseaseSymptom(
+        title: 'Stunted growth',
+        description:
+            'Infected plants may become brittle, severely stunted, and nonproductive.',
+        icon: Icons.trending_down,
+      ),
+    ],
+    causes: [
+      DiseaseCause(
+        title: 'Banana aphid vector',
+        description:
+            'Pentalonia nigronervosa transmits BBTV while feeding on banana plants.',
+        icon: Icons.bug_report_outlined,
+      ),
+      DiseaseCause(
+        title: 'Infected planting material',
+        description:
+            'Suckers or planting materials from infected mats can spread the virus to new areas.',
+        icon: Icons.grass_outlined,
+      ),
+    ],
+    prevention: [
+      'Use disease-free planting materials from reliable sources',
+      'Monitor fields for aphids and early bunchy top symptoms',
+      'Remove infected plants only according to local agricultural guidance',
+      'Avoid moving planting materials from suspect fields',
+      'Keep new planting materials separated from suspect or infected farm areas',
+    ],
+    treatments: [
+      DiseaseTreatment(
+        title: 'Field response',
+        steps: [
+          'Mark suspect plants and avoid collecting suckers from the area',
+          'Consult the Municipal Agriculture Office or crop protection staff',
+          'Follow official removal and sanitation guidance for infected mats',
+        ],
+      ),
+      DiseaseTreatment(
+        title: 'Vector management',
+        steps: [
+          'Monitor and manage banana aphid populations',
+          'Remove volunteer banana plants that may harbor aphids or disease',
+          'Use only locally recommended control practices',
+        ],
+      ),
+    ],
+    videos: [
+      DiseaseVideo(
+        title: 'Banana Bunchy Top Disease Philippines',
+        channel: 'Search result',
+        duration: 'Varies',
+        searchQuery: 'banana bunchy top disease Philippines',
+      ),
+    ],
+    quickFacts: [
+      DiseaseQuickFact(label: 'Disease Type', value: 'Viral'),
+      DiseaseQuickFact(label: 'Causal Agent', value: 'BBTV'),
+      DiseaseQuickFact(label: 'Spread Method', value: 'Banana aphid'),
+      DiseaseQuickFact(label: 'Planting Risk', value: 'Infected suckers'),
+      DiseaseQuickFact(label: 'Risk Level', value: 'High'),
+      DiseaseQuickFact(label: 'AI Status', value: 'Guide only'),
+    ],
+    farmerTips: [
+      'Do not use suckers from plants with bunching or severe stunting.',
+      'Report suspicious bunchy top symptoms early for proper field guidance.',
+      'Managing aphids is part of prevention, but infected plants still require official guidance.',
+    ],
+    relatedIds: ['bract_mosaic', 'moko', 'panama'],
+    searchKeywords: [
+      'banana bunchy top',
+      'bunchy top',
+      'bbtv',
+      'banana bunchy top virus',
+      'banana aphid',
+      'rosette banana',
+    ],
+    sources: [
+      'Business Queensland - Banana bunchy top',
+      'CGIAR / Bioversity International - Guide to Banana Bunchy Top Disease',
+      'Plant Disease / PMC - Banana bunchy top virus research in the Philippines',
+    ],
+  );
+
+  static const anthracnose = DiseaseGuideItem(
+    id: 'anthracnose',
+    name: 'Banana Anthracnose',
+    shortName: 'Anthracnose',
+    category: DiseaseCategory.fungal,
+    risk: DiseaseRisk.moderate,
+    imageUrl: 'assets/images/banana_anthracnose.jpg',
+    fallbackAsset: _fallback,
+    scientificName: 'Colletotrichum musae and related Colletotrichum species',
+    isAiDetectable: false,
+    modelLabel: null,
+    summary:
+        'A banana disease commonly seen on fruit as dark sunken lesions, especially under humid and postharvest conditions.',
+    overview:
+        'Banana Anthracnose is a fungal fruit disease associated with Colletotrichum species. Symptoms are often noticed during ripening or after harvest, especially when fruit has wounds or is kept under humid conditions.',
+    whyDangerous:
+        'Anthracnose reduces fruit quality and market value. It can remain unnoticed at harvest and become more visible as fruit ripens, so careful handling and clean postharvest practices are important.',
+    symptoms: [
+      DiseaseSymptom(
+        title: 'Sunken fruit spots',
+        description:
+            'Black or brown depressed lesions may appear on banana fruit.',
+        icon: Icons.circle_outlined,
+      ),
+      DiseaseSymptom(
+        title: 'Expanding lesions',
+        description:
+            'Spots can enlarge and merge, damaging more of the fruit surface.',
+        icon: Icons.blur_circular_outlined,
+      ),
+      DiseaseSymptom(
+        title: 'Salmon spore masses',
+        description:
+            'Under humid conditions, lesions may develop salmon-colored fungal structures or spore masses.',
+        icon: Icons.grain,
+      ),
+    ],
+    causes: [
+      DiseaseCause(
+        title: 'Fungal infection',
+        description:
+            'Colletotrichum fungi can infect banana fruit and develop into visible lesions during ripening.',
+        icon: Icons.biotech_outlined,
+      ),
+      DiseaseCause(
+        title: 'Humid conditions',
+        description:
+            'Moist environments can favor fungal growth and postharvest disease development.',
+        icon: Icons.water_drop_outlined,
+      ),
+      DiseaseCause(
+        title: 'Fruit handling stress',
+        description:
+            'Bruising and poor postharvest handling can worsen fruit disease problems.',
+        icon: Icons.inventory_2_outlined,
+      ),
+    ],
+    prevention: [
+      'Handle harvested fruit carefully to reduce wounds and bruising',
+      'Keep packing and storage areas clean',
+      'Remove affected fruit and plant residues properly',
+      'Follow recommended postharvest sanitation practices',
+    ],
+    treatments: [
+      DiseaseTreatment(
+        title: 'Postharvest management',
+        steps: [
+          'Separate visibly affected fruit from healthy fruit',
+          'Improve sanitation in handling, washing, and packing areas',
+          'Follow local postharvest guidance instead of relying on a single chemical solution',
+        ],
+      ),
+    ],
+    videos: [
+      DiseaseVideo(
+        title: 'Banana Anthracnose Philippines',
+        channel: 'Search result',
+        duration: 'Varies',
+        searchQuery: 'banana anthracnose Philippines',
+      ),
+    ],
+    quickFacts: [
+      DiseaseQuickFact(label: 'Disease Type', value: 'Fungal'),
+      DiseaseQuickFact(label: 'Causal Agent', value: 'Colletotrichum spp.'),
+      DiseaseQuickFact(label: 'Common Site', value: 'Fruit'),
+      DiseaseQuickFact(label: 'Risk Level', value: 'Moderate'),
+      DiseaseQuickFact(label: 'AI Status', value: 'Guide only'),
+    ],
+    farmerTips: [
+      'Protect fruit from bruising during harvest and transport.',
+      'Good sanitation after harvest helps reduce fruit rot problems.',
+    ],
+    relatedIds: ['black_sigatoka', 'yellow_sigatoka'],
+    searchKeywords: [
+      'banana anthracnose',
+      'anthracnose banana',
+      'banana fruit spots',
+      'banana black spots',
+    ],
+    sources: [
+      'TNAU Agritech Portal - Banana postharvest anthracnose',
+      'Plantwise Knowledge Bank - Anthracnose on banana',
+      'Philippine Center for Postharvest Development and Mechanization - banana postharvest disease information',
+    ],
+  );
+
+  static const bananaFreckle = DiseaseGuideItem(
+    id: 'banana_freckle',
+    name: 'Banana Freckle',
+    shortName: 'Banana Freckle',
+    category: DiseaseCategory.fungal,
+    risk: DiseaseRisk.moderate,
+    imageUrl: 'assets/images/banana_freckle.jpg',
+    fallbackAsset: _fallback,
+    scientificName: 'Phyllosticta spp. including Phyllosticta cavendishii',
+    isAiDetectable: false,
+    modelLabel: null,
+    summary:
+        'A fungal banana disease associated with small raised freckle-like spots on leaves and fruit.',
+    overview:
+        'Banana Freckle is associated with Phyllosticta fungi and can affect leaves and fruit. DOST-PCAARRD has documented banana freckles affecting Lakatan and Cardaba in Region XII, including areas in North Cotabato, Sultan Kudarat, and Maguindanao.',
+    whyDangerous:
+        'Freckle symptoms can reduce fruit appearance and crop quality. When spots increase across a block, farmers need stronger monitoring, sanitation, and good agricultural practices.',
+    symptoms: [
+      DiseaseSymptom(
+        title: 'Raised dark spots',
+        description:
+            'Small dark raised spots can appear on leaves or fruit and may feel rough like sandpaper.',
+        icon: Icons.scatter_plot_outlined,
+      ),
+      DiseaseSymptom(
+        title: 'Fruit spotting',
+        description:
+            'On fruit, freckles may reduce visual quality even when the fruit is still usable.',
+        icon: Icons.spa_outlined,
+      ),
+      DiseaseSymptom(
+        title: 'Variety concern',
+        description:
+            'Philippine reports include affected Lakatan and Cardaba bananas.',
+        icon: Icons.eco_outlined,
+      ),
+    ],
+    causes: [
+      DiseaseCause(
+        title: 'Fungal disease pressure',
+        description:
+            'Phyllosticta fungi can produce spotting symptoms when conditions favor disease development.',
+        icon: Icons.agriculture_outlined,
+      ),
+      DiseaseCause(
+        title: 'Poor sanitation',
+        description:
+            'Unmanaged field residues and weak field hygiene can contribute to pest and disease pressure.',
+        icon: Icons.cleaning_services_outlined,
+      ),
+    ],
+    prevention: [
+      'Inspect Lakatan and Cardaba plants regularly for freckle-like spots',
+      'Maintain field sanitation and remove problematic plant residues',
+      'Use good agricultural practices recommended by local experts',
+      'Monitor disease trends across affected blocks',
+    ],
+    treatments: [
+      DiseaseTreatment(
+        title: 'Good agricultural practices',
+        steps: [
+          'Improve sanitation and regular field monitoring',
+          'Avoid moving suspect plant material between farms',
+          'Consult local agriculture technicians for crop management guidance',
+        ],
+      ),
+    ],
+    videos: [
+      DiseaseVideo(
+        title: 'Banana Freckle Philippines',
+        channel: 'Search result',
+        duration: 'Varies',
+        searchQuery: 'banana freckle Philippines',
+      ),
+    ],
+    quickFacts: [
+      DiseaseQuickFact(label: 'Disease Type', value: 'Fungal'),
+      DiseaseQuickFact(label: 'Causal Agent', value: 'Phyllosticta spp.'),
+      DiseaseQuickFact(label: 'Common Sites', value: 'Leaves and fruit'),
+      DiseaseQuickFact(label: 'Reported Varieties', value: 'Lakatan, Cardaba'),
+      DiseaseQuickFact(label: 'Risk Level', value: 'Moderate'),
+      DiseaseQuickFact(label: 'AI Status', value: 'Guide only'),
+    ],
+    farmerTips: [
+      'Record where freckle-like symptoms appear so recurring blocks can be monitored.',
+      'Use local GAP guidance before applying any treatment program.',
+    ],
+    relatedIds: ['black_sigatoka', 'yellow_sigatoka'],
+    searchKeywords: [
+      'banana freckle',
+      'banana freckles',
+      'banana leaf spots',
+      'lakatan freckle',
+      'cardaba freckle',
+    ],
+    sources: [
+      'DOST-PCAARRD - Good agricultural practices reduces pests and diseases of Lakatan and Cardaba',
+      'Business Queensland - Freckle disease of banana',
+      'International Plant Protection Convention - Phyllosticta cavendishii banana freckle pest report',
+    ],
+  );
+
+  static const crownRot = DiseaseGuideItem(
+    id: 'crown_rot',
+    name: 'Banana Crown Rot',
+    shortName: 'Crown Rot',
+    category: DiseaseCategory.postharvest,
+    risk: DiseaseRisk.moderate,
+    imageUrl: 'assets/images/banana_crown_rot.jpg',
+    fallbackAsset: _fallback,
+    scientificName: 'Complex of postharvest fungal pathogens',
+    isAiDetectable: false,
+    modelLabel: null,
+    summary:
+        'A postharvest rot problem affecting the crown area of banana hands after harvest.',
+    overview:
+        'Banana Crown Rot is associated with postharvest deterioration and can involve a complex of fungal pathogens rather than one single cause. Philippine research has studied crown rot management in Cavendish bananas in Davao City and Bungulan bananas in Dumaguete.',
+    whyDangerous:
+        'Crown rot affects market quality after harvest. Poor sanitation, harvesting, handling, and storage practices can increase losses before fruit reaches buyers.',
+    symptoms: [
+      DiseaseSymptom(
+        title: 'Crown discoloration',
+        description:
+            'The cut crown area of banana hands may darken and show rot development.',
+        icon: Icons.change_history_outlined,
+      ),
+      DiseaseSymptom(
+        title: 'Postharvest decay',
+        description:
+            'Rot may progress after harvest during handling, transport, or storage.',
+        icon: Icons.inventory_outlined,
+      ),
+    ],
+    causes: [
+      DiseaseCause(
+        title: 'Pathogen complex',
+        description:
+            'Crown rot can involve multiple fungal pathogens rather than one single organism.',
+        icon: Icons.biotech_outlined,
+      ),
+      DiseaseCause(
+        title: 'Handling conditions',
+        description:
+            'Poor sanitation and rough handling can support postharvest deterioration.',
+        icon: Icons.local_shipping_outlined,
+      ),
+    ],
+    prevention: [
+      'Harvest carefully and avoid unnecessary wounds',
+      'Keep knives, trays, and packing areas clean',
+      'Handle banana hands gently during transport and packing',
+      'Follow recommended postharvest management practices',
+    ],
+    treatments: [
+      DiseaseTreatment(
+        title: 'Postharvest response',
+        steps: [
+          'Separate affected banana hands from clean produce',
+          'Improve sanitation in harvest and packing operations',
+          'Consult postharvest or agriculture specialists for locally approved management options',
+        ],
+      ),
+    ],
+    videos: [
+      DiseaseVideo(
+        title: 'Banana Crown Rot Postharvest',
+        channel: 'Search result',
+        duration: 'Varies',
+        searchQuery: 'banana crown rot banana postharvest',
+      ),
+    ],
+    quickFacts: [
+      DiseaseQuickFact(label: 'Disease Type', value: 'Postharvest fungal rot'),
+      DiseaseQuickFact(label: 'Common Site', value: 'Crown of banana hands'),
+      DiseaseQuickFact(label: 'Risk Level', value: 'Moderate'),
+      DiseaseQuickFact(label: 'AI Status', value: 'Guide only'),
+    ],
+    farmerTips: [
+      'Crown rot is mainly a postharvest issue, so field diagnosis alone is not enough.',
+      'Cleaner harvest tools and gentler handling can reduce losses.',
+    ],
+    relatedIds: ['anthracnose', 'healthy_leaf'],
+    searchKeywords: [
+      'banana crown rot',
+      'crown rot banana',
+      'banana postharvest rot',
+      'banana hand rot',
+    ],
+    sources: [
+      'Philippine Center for Postharvest Development and Mechanization (PhilMech) - banana postharvest disease information',
+      'ITFNet / PhilMech report - organic solution research for banana crown rot',
+      'Plant Pathology - crown rot disease complex in banana',
+    ],
+  );
+
+  static const weevilBorer = DiseaseGuideItem(
+    id: 'weevil_borer',
+    name: 'Banana Weevil Borer',
+    shortName: 'Weevil Borer',
+    category: DiseaseCategory.pest,
+    risk: DiseaseRisk.moderate,
+    imageUrl: 'assets/images/banana_weevil_borer.jpg',
+    fallbackAsset: _fallback,
+    scientificName: 'Cosmopolites sordidus',
+    isAiDetectable: false,
+    modelLabel: null,
+    summary:
+        'A banana insect pest whose larvae bore into the corm and lower pseudostem, weakening the plant.',
+    overview:
+        'Banana Weevil Borer, commonly associated with Cosmopolites sordidus, is included as a guide-only pest entry. The pest damages banana mainly through larval tunneling in the corm and lower pseudostem.',
+    whyDangerous:
+        'Weevil damage can weaken plant anchorage, reduce plant vigor, and contribute to smaller bunches or plant loss when infestations are not monitored and managed.',
+    symptoms: [
+      DiseaseSymptom(
+        title: 'Weak plant growth',
+        description:
+            'Infested plants may show reduced vigor, yellowing leaves, poor sucker growth, or smaller bunches.',
+        icon: Icons.trending_down,
+      ),
+      DiseaseSymptom(
+        title: 'Corm tunneling',
+        description:
+            'Larvae can tunnel inside the corm and lower pseudostem, making damage hard to see from the outside.',
+        icon: Icons.pest_control_outlined,
+      ),
+    ],
+    causes: [
+      DiseaseCause(
+        title: 'Banana weevil infestation',
+        description:
+            'Adult weevils lay eggs near the plant base; larvae cause the main damage by boring into plant tissue.',
+        icon: Icons.bug_report_outlined,
+      ),
+      DiseaseCause(
+        title: 'Unmanaged farm residues',
+        description:
+            'Poor sanitation and heavily infested material can support pest buildup.',
+        icon: Icons.delete_sweep_outlined,
+      ),
+    ],
+    prevention: [
+      'Monitor banana mats regularly for pest activity',
+      'Maintain field sanitation and remove heavily infested material as advised',
+      'Avoid moving infested planting material to clean areas',
+      'Use good farm management and IPM practices',
+      'Consult local agriculture technicians before using pest control products',
+    ],
+    treatments: [
+      DiseaseTreatment(
+        title: 'Integrated pest management',
+        steps: [
+          'Confirm the pest problem before treatment',
+          'Remove or manage heavily infested material following local guidance',
+          'Use locally recommended control practices and follow product label instructions when applicable',
+        ],
+      ),
+    ],
+    videos: [
+      DiseaseVideo(
+        title: 'Banana Weevil Borer Philippines',
+        channel: 'Search result',
+        duration: 'Varies',
+        searchQuery: 'banana weevil borer Philippines',
+      ),
+    ],
+    quickFacts: [
+      DiseaseQuickFact(label: 'Problem Type', value: 'Insect pest'),
+      DiseaseQuickFact(label: 'Pest Name', value: 'Cosmopolites sordidus'),
+      DiseaseQuickFact(label: 'Main Damage', value: 'Corm tunneling'),
+      DiseaseQuickFact(label: 'Risk Level', value: 'Moderate'),
+      DiseaseQuickFact(label: 'Management', value: 'IPM and sanitation'),
+      DiseaseQuickFact(label: 'AI Status', value: 'Guide only'),
+    ],
+    farmerTips: [
+      'This entry is pest-specific and should be used alongside the general Insect Pest guide.',
+      'Avoid applying pesticides without confirming the pest and reading the product label.',
+    ],
+    relatedIds: ['insect_pest', 'bract_mosaic'],
+    searchKeywords: [
+      'banana weevil',
+      'banana weevil borer',
+      'weevil damage banana',
+      'banana pest',
+      'corm weevil',
+    ],
+    sources: [
+      'DA Agricultural Training Institute banana IPM material',
+      'Business Queensland - Banana weevil borer',
+      'Plantwise Knowledge Bank - Banana Weevil: Cosmopolites sordidus',
+    ],
   );
 }

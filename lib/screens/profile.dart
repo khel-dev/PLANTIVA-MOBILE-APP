@@ -10,6 +10,8 @@ import 'package:flutter_plantiva/screens/profile/notification_settings_screen.da
 import 'package:flutter_plantiva/screens/profile/privacy_security_screen.dart';
 import 'package:flutter_plantiva/services/auth_service.dart';
 import 'package:flutter_plantiva/services/profile_service.dart';
+import 'package:flutter_plantiva/utils/auth_error_messages.dart';
+import 'package:flutter_plantiva/utils/plantiva_feedback.dart';
 import 'package:flutter_plantiva/utils/validators.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -202,8 +204,10 @@ class _ProfilePageState extends State<ProfilePage>
                           farmLocation: loc,
                         );
                         if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Profile updated')),
+                          PlantivaFeedback.show(
+                            context,
+                            message: 'Profile updated successfully.',
+                            type: PlantivaFeedbackType.success,
                           );
                         }
                       },
@@ -272,14 +276,24 @@ class _ProfilePageState extends State<ProfilePage>
                               TextButton(
                                 onPressed: () async {
                                   Navigator.pop(dialogContext);
-                                  await _authService.signOut();
-                                  if (context.mounted) {
-                                    nav.pushAndRemoveUntil(
-                                      MaterialPageRoute<void>(
-                                        builder: (_) => const LandingPage(),
-                                      ),
-                                      (_) => false,
-                                    );
+                                  try {
+                                    await _authService.signOut();
+                                    if (context.mounted) {
+                                      nav.pushAndRemoveUntil(
+                                        MaterialPageRoute<void>(
+                                          builder: (_) => const LandingPage(),
+                                        ),
+                                        (_) => false,
+                                      );
+                                    }
+                                  } catch (e) {
+                                    if (context.mounted) {
+                                      PlantivaFeedback.show(
+                                        context,
+                                        message: AuthErrorMessages.logout(e),
+                                        type: PlantivaFeedbackType.error,
+                                      );
+                                    }
                                   }
                                 },
                                 child: const Text(
@@ -536,8 +550,10 @@ class _ProfileInfoCardState extends State<_ProfileInfoCard> {
                             ? null
                             : Validators.phone(_contact.text);
                         if (phoneErr != null) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text(phoneErr)),
+                          PlantivaFeedback.show(
+                            context,
+                            message: phoneErr,
+                            type: PlantivaFeedbackType.warning,
                           );
                           return;
                         }

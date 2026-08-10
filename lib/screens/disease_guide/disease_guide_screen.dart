@@ -131,7 +131,7 @@ class _DiseaseGuideScreenState extends State<DiseaseGuideScreen> {
                         TextField(
                           controller: _search,
                           decoration: InputDecoration(
-                            hintText: 'Search diseases, symptoms, keywords…',
+                            hintText: 'Search diseases, symptoms, keywords...',
                             prefixIcon: const Icon(Icons.search),
                             filled: true,
                             fillColor: Colors.white,
@@ -146,7 +146,8 @@ class _DiseaseGuideScreenState extends State<DiseaseGuideScreen> {
                           scrollDirection: Axis.horizontal,
                           child: Row(
                             children: [
-                              _filterChip('All', _filter == null && !_savedOnly, () {
+                              _filterChip('All', _filter == null && !_savedOnly,
+                                  () {
                                 setState(() {
                                   _filter = null;
                                   _savedOnly = false;

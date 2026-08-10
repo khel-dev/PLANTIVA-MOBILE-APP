@@ -3,6 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_plantiva/config/app_colors.dart';
 import 'package:flutter_plantiva/screens/homepage.dart';
 import 'package:flutter_plantiva/services/auth_service.dart';
+import 'package:flutter_plantiva/utils/auth_error_messages.dart';
+import 'package:flutter_plantiva/utils/plantiva_feedback.dart';
 import 'package:flutter_plantiva/utils/validators.dart';
 import 'package:flutter_plantiva/widgets/header_image.dart';
 import 'package:flutter_plantiva/widgets/labeled_field.dart';
@@ -71,14 +73,15 @@ class _RegistrationPageState extends State<RegistrationPage> {
   }
 
   Future<void> _register() async {
+    if (_loading) return;
     if (!_formKey.currentState!.validate()) {
       return;
     }
     if (!_agreed) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('You need to accept terms and privacy policy.'),
-        ),
+      PlantivaFeedback.show(
+        context,
+        message: 'You need to accept terms and privacy policy.',
+        type: PlantivaFeedbackType.warning,
       );
       return;
     }
@@ -94,10 +97,10 @@ class _RegistrationPageState extends State<RegistrationPage> {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Account created. Welcome to PLANTIVA!'),
-        ),
+      PlantivaFeedback.show(
+        context,
+        message: 'Account created. Welcome to PLANTIVA!',
+        type: PlantivaFeedbackType.success,
       );
       _goHome();
     } on FirebaseAuthException catch (e) {
@@ -108,34 +111,36 @@ class _RegistrationPageState extends State<RegistrationPage> {
           final repaired = await _repairCurrentUserProfile();
           if (repaired) {
             if (!mounted) return;
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Profile setup completed. Welcome to PLANTIVA!'),
-              ),
+            PlantivaFeedback.show(
+              context,
+              message: 'Profile setup completed. Welcome to PLANTIVA!',
+              type: PlantivaFeedbackType.success,
             );
             _goHome();
             return;
           }
         } catch (_) {
           if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Account created, but profile setup failed. Please retry.',
-              ),
-            ),
+          PlantivaFeedback.show(
+            context,
+            message: 'Account created, but profile setup failed. Please retry.',
+            type: PlantivaFeedbackType.error,
           );
           return;
         }
       }
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message ?? 'Registration failed.')),
+      PlantivaFeedback.show(
+        context,
+        message: AuthErrorMessages.registration(e),
+        type: PlantivaFeedbackType.error,
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Registration failed. Please try again. ($e)')),
+      PlantivaFeedback.show(
+        context,
+        message: AuthErrorMessages.registration(e),
+        type: PlantivaFeedbackType.error,
       );
     } finally {
       if (mounted && !_navigatingHome) setState(() => _loading = false);

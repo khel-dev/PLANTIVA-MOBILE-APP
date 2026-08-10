@@ -13,6 +13,12 @@ class ProfileService {
 
   String? get uid => _auth.currentUser?.uid;
 
+  bool get isPasswordAccount {
+    final user = _auth.currentUser;
+    if (user == null) return false;
+    return user.providerData.any((p) => p.providerId == 'password');
+  }
+
   Stream<DocumentSnapshot> userStream() {
     final id = uid;
     if (id == null) return const Stream.empty();
@@ -100,6 +106,13 @@ class ProfileService {
     required String newPassword,
   }) async {
     final user = _auth.currentUser;
+    if (!isPasswordAccount) {
+      throw FirebaseAuthException(
+        code: 'provider-managed-password',
+        message:
+            'Password changes for Google accounts are managed through Google.',
+      );
+    }
     if (user?.email == null) {
       throw FirebaseAuthException(
         code: 'no-email',
@@ -119,31 +132,69 @@ class ProfileService {
     final id = uid;
     if (user == null || id == null) return;
 
-    if (user.email != null) {
-      final cred = EmailAuthProvider.credential(
-        email: user.email!,
-        password: password,
+    if (!isPasswordAccount) {
+      throw FirebaseAuthException(
+        code: 'provider-managed-password',
+        message:
+            'Google accounts require Google reauthentication before deletion.',
       );
-      await user.reauthenticateWithCredential(cred);
     }
+
+    if (user.email == null) {
+      throw FirebaseAuthException(
+        code: 'no-email',
+        message: 'No email associated with this account.',
+      );
+    }
+
+    final cred = EmailAuthProvider.credential(
+      email: user.email!,
+      password: password,
+    );
+    await user.reauthenticateWithCredential(cred);
 
     try {
       await _storage.ref().child('users/$id/profile.jpg').delete();
-    } catch (_) {}
-
-    final scans =
-        await _db.collection('users').doc(id).collection('scans').get();
-    for (final doc in scans.docs) {
-      final url = doc.data()['imageUrl'] as String?;
-      if (url != null && url.isNotEmpty) {
-        try {
-          await _storage.refFromURL(url).delete();
-        } catch (_) {}
+    } on FirebaseException catch (e) {
+      if (e.code != 'object-not-found') {
+        throw FirebaseAuthException(
+          code: 'storage-cleanup-failed',
+          message: 'Profile image cleanup failed.',
+        );
       }
-      await doc.reference.delete();
     }
 
-    await _db.collection('users').doc(id).delete();
+    try {
+      final scans =
+          await _db.collection('users').doc(id).collection('scans').get();
+      for (final doc in scans.docs) {
+        final url = doc.data()['imageUrl'] as String?;
+        if (url != null && url.isNotEmpty) {
+          try {
+            await _storage.refFromURL(url).delete();
+          } on FirebaseException catch (e) {
+            if (e.code != 'object-not-found') {
+              throw FirebaseAuthException(
+                code: 'storage-cleanup-failed',
+                message: 'Scan image cleanup failed.',
+              );
+            }
+          } on ArgumentError {
+            // Existing invalid URLs should not block account deletion.
+          }
+        }
+        await doc.reference.delete();
+      }
+      await _db.collection('users').doc(id).delete();
+    } on FirebaseAuthException {
+      rethrow;
+    } catch (_) {
+      throw FirebaseAuthException(
+        code: 'firestore-cleanup-failed',
+        message: 'Account data cleanup failed.',
+      );
+    }
+
     await user.delete();
   }
 }

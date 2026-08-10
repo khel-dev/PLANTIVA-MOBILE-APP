@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-enum DiseaseCategory { fungal, viral, bacterial, pest, healthy }
+enum DiseaseCategory { fungal, viral, bacterial, pest, postharvest, healthy }
 
 enum DiseaseRisk { low, moderate, high }
 
@@ -15,6 +15,8 @@ extension DiseaseCategoryX on DiseaseCategory {
         return 'Bacterial';
       case DiseaseCategory.pest:
         return 'Pest-related';
+      case DiseaseCategory.postharvest:
+        return 'Postharvest';
       case DiseaseCategory.healthy:
         return 'Healthy';
     }
@@ -30,6 +32,8 @@ extension DiseaseCategoryX on DiseaseCategory {
         return const Color(0xFFC62828);
       case DiseaseCategory.pest:
         return const Color(0xFF00695C);
+      case DiseaseCategory.postharvest:
+        return const Color(0xFF795548);
       case DiseaseCategory.healthy:
         return const Color(0xFF2E7D32);
     }
@@ -139,6 +143,10 @@ class DiseaseGuideItem {
     required this.farmerTips,
     required this.relatedIds,
     required this.searchKeywords,
+    this.scientificName,
+    this.isAiDetectable = true,
+    this.modelLabel,
+    this.sources = const [],
   });
 
   final String id;
@@ -160,4 +168,8 @@ class DiseaseGuideItem {
   final List<String> farmerTips;
   final List<String> relatedIds;
   final List<String> searchKeywords;
+  final String? scientificName;
+  final bool isAiDetectable;
+  final String? modelLabel;
+  final List<String> sources;
 }

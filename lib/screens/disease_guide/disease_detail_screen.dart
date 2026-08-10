@@ -4,6 +4,7 @@ import 'package:flutter_plantiva/data/disease_guide_data.dart';
 import 'package:flutter_plantiva/models/disease_guide.dart';
 import 'package:flutter_plantiva/services/disease_guide_service.dart';
 import 'package:flutter_plantiva/utils/page_transitions.dart';
+import 'package:flutter_plantiva/utils/plantiva_feedback.dart';
 import 'package:flutter_plantiva/widgets/disease_guide/disease_card.dart';
 import 'package:flutter_plantiva/widgets/disease_guide/disease_thumbnail.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -48,7 +49,19 @@ class _DiseaseDetailScreenState extends State<DiseaseDetailScreen> {
 
   Future<void> _toggleBookmark() async {
     await _service.toggleBookmark(widget.disease.id);
-    if (mounted) setState(() => _bookmarked = !_bookmarked);
+    if (mounted) {
+      final nextBookmarked = !_bookmarked;
+      setState(() => _bookmarked = nextBookmarked);
+      PlantivaFeedback.show(
+        context,
+        message: nextBookmarked
+            ? 'Added to saved diseases.'
+            : 'Removed from saved diseases.',
+        type: nextBookmarked
+            ? PlantivaFeedbackType.success
+            : PlantivaFeedbackType.info,
+      );
+    }
     widget.onStateChanged?.call();
   }
 
@@ -57,8 +70,10 @@ class _DiseaseDetailScreenState extends State<DiseaseDetailScreen> {
     if (mounted) setState(() => _studied = true);
     widget.onStateChanged?.call();
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Marked as studied — great work!')),
+      PlantivaFeedback.show(
+        context,
+        message: 'Marked as studied - great work!',
+        type: PlantivaFeedbackType.success,
       );
     }
   }
@@ -127,6 +142,8 @@ class _DiseaseDetailScreenState extends State<DiseaseDetailScreen> {
                         const SizedBox(height: 8),
                         Text(
                           d.name,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 22,
@@ -267,6 +284,11 @@ class _DiseaseDetailScreenState extends State<DiseaseDetailScreen> {
                 const SizedBox(height: 20),
                 _sectionTitle('Farmer Tips'),
                 ...d.farmerTips.map(_tipCard),
+                if (d.sources.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  _sectionTitle('References'),
+                  _referencesCard(d.sources),
+                ],
                 const SizedBox(height: 12),
                 if (!_studied)
                   SizedBox(
@@ -521,7 +543,7 @@ class _DiseaseDetailScreenState extends State<DiseaseDetailScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '${v.channel} • ${v.duration}',
+                      '${v.channel} - ${v.duration}',
                       style: const TextStyle(
                         fontSize: 12,
                         color: AppColors.mutedText,
@@ -572,6 +594,47 @@ class _DiseaseDetailScreenState extends State<DiseaseDetailScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _referencesCard(List<String> sources) {
+    return _card(
+      child: Column(
+        children: List.generate(
+          sources.length,
+          (index) => Padding(
+            padding: EdgeInsets.only(
+              bottom: index == sources.length - 1 ? 0 : 10,
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 7,
+                  height: 7,
+                  margin: const EdgeInsets.only(top: 7),
+                  decoration: const BoxDecoration(
+                    color: AppColors.green,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    sources[index],
+                    style: TextStyle(
+                      color: Colors.grey.shade800,
+                      fontSize: 14,
+                      height: 1.45,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

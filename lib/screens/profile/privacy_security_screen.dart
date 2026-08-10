@@ -4,6 +4,8 @@ import 'package:flutter_plantiva/config/app_colors.dart';
 import 'package:flutter_plantiva/screens/landing_page.dart';
 import 'package:flutter_plantiva/services/auth_service.dart';
 import 'package:flutter_plantiva/services/profile_service.dart';
+import 'package:flutter_plantiva/utils/auth_error_messages.dart';
+import 'package:flutter_plantiva/utils/plantiva_feedback.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class PrivacySecurityScreen extends StatefulWidget {
@@ -16,8 +18,21 @@ class PrivacySecurityScreen extends StatefulWidget {
 class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
   final _service = ProfileService();
   final _authService = AuthService();
+  bool _busy = false;
 
   Future<void> _changePassword() async {
+    if (_busy) return;
+    if (!_service.isPasswordAccount) {
+      PlantivaFeedback.show(
+        context,
+        message: AuthErrorMessages.changePassword(
+          FirebaseAuthException(code: 'provider-managed-password'),
+        ),
+        type: PlantivaFeedbackType.info,
+      );
+      return;
+    }
+
     final current = TextEditingController();
     final newPass = TextEditingController();
     final confirm = TextEditingController();
@@ -26,25 +41,29 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Change Password'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: current,
-              obscureText: true,
-              decoration: const InputDecoration(labelText: 'Current password'),
-            ),
-            TextField(
-              controller: newPass,
-              obscureText: true,
-              decoration: const InputDecoration(labelText: 'New password'),
-            ),
-            TextField(
-              controller: confirm,
-              obscureText: true,
-              decoration: const InputDecoration(labelText: 'Confirm password'),
-            ),
-          ],
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: current,
+                obscureText: true,
+                decoration:
+                    const InputDecoration(labelText: 'Current password'),
+              ),
+              TextField(
+                controller: newPass,
+                obscureText: true,
+                decoration: const InputDecoration(labelText: 'New password'),
+              ),
+              TextField(
+                controller: confirm,
+                obscureText: true,
+                decoration:
+                    const InputDecoration(labelText: 'Confirm password'),
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -60,39 +79,71 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
     );
 
     if (ok != true || !mounted) return;
+    if (_busy) return;
     if (newPass.text.length < 6) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Password must be at least 6 characters')),
+      PlantivaFeedback.show(
+        context,
+        message: 'Password must be at least 6 characters',
+        type: PlantivaFeedbackType.warning,
       );
       return;
     }
     if (newPass.text != confirm.text) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Passwords do not match')),
+      PlantivaFeedback.show(
+        context,
+        message: 'Passwords do not match',
+        type: PlantivaFeedbackType.warning,
       );
       return;
     }
 
     try {
+      setState(() => _busy = true);
       await _service.changePassword(
         currentPassword: current.text,
         newPassword: newPass.text,
       );
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Password updated successfully')),
+        PlantivaFeedback.show(
+          context,
+          message: 'Password changed successfully.',
+          type: PlantivaFeedbackType.success,
         );
       }
     } on FirebaseAuthException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message ?? 'Failed to update password')),
+        PlantivaFeedback.show(
+          context,
+          message: AuthErrorMessages.changePassword(e),
+          type: PlantivaFeedbackType.error,
         );
       }
+    } catch (e) {
+      if (mounted) {
+        PlantivaFeedback.show(
+          context,
+          message: AuthErrorMessages.changePassword(e),
+          type: PlantivaFeedbackType.error,
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
     }
   }
 
   Future<void> _deleteAccount() async {
+    if (_busy) return;
+    if (!_service.isPasswordAccount) {
+      PlantivaFeedback.show(
+        context,
+        message: AuthErrorMessages.deleteAccount(
+          FirebaseAuthException(code: 'provider-managed-password'),
+        ),
+        type: PlantivaFeedbackType.info,
+      );
+      return;
+    }
+
     final password = TextEditingController();
     final ok = await showDialog<bool>(
       context: context,
@@ -129,8 +180,10 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
     );
 
     if (ok != true || !mounted) return;
+    if (_busy) return;
 
     try {
+      setState(() => _busy = true);
       await _service.deleteAccount(password: password.text);
       await _authService.signOut();
       if (mounted) {
@@ -141,10 +194,22 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
       }
     } on FirebaseAuthException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message ?? 'Failed to delete account')),
+        PlantivaFeedback.show(
+          context,
+          message: AuthErrorMessages.deleteAccount(e),
+          type: PlantivaFeedbackType.error,
         );
       }
+    } catch (e) {
+      if (mounted) {
+        PlantivaFeedback.show(
+          context,
+          message: AuthErrorMessages.deleteAccount(e),
+          type: PlantivaFeedbackType.error,
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
     }
   }
 
@@ -198,12 +263,11 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
           const SizedBox(height: 16),
           _tile(Icons.lock_outline, 'Change Password', _changePassword),
           _tile(Icons.admin_panel_settings_outlined, 'Manage Permissions', () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text(
+            PlantivaFeedback.show(
+              context,
+              message:
                   'Camera and storage permissions are managed in your device Settings app.',
-                ),
-              ),
+              type: PlantivaFeedbackType.info,
             );
           }),
           _tile(Icons.data_usage_outlined, 'Data Usage Information', () {

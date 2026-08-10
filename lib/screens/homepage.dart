@@ -587,8 +587,10 @@ class _SavedScansTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.viewPaddingOf(context).bottom;
+
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -637,6 +639,7 @@ class _SavedScansTab extends StatelessWidget {
                   return const Center(child: RecentScansEmptyState());
                 }
                 return ListView.builder(
+                  padding: EdgeInsets.only(bottom: 18 + bottomInset),
                   itemCount: snap.data!.length,
                   itemBuilder: (context, i) => RecentScanCard(
                     scan: snap.data![i],

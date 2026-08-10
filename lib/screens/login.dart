@@ -7,7 +7,9 @@ import 'package:flutter_plantiva/screens/forgot_password.dart';
 import 'package:flutter_plantiva/screens/homepage.dart';
 import 'package:flutter_plantiva/screens/registration.dart';
 import 'package:flutter_plantiva/services/auth_service.dart';
+import 'package:flutter_plantiva/utils/auth_error_messages.dart';
 import 'package:flutter_plantiva/utils/page_transitions.dart';
+import 'package:flutter_plantiva/utils/plantiva_feedback.dart';
 import 'package:flutter_plantiva/utils/validators.dart';
 import 'package:flutter_plantiva/widgets/header_image.dart';
 
@@ -61,6 +63,7 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _submit() async {
+    if (_loading) return;
     if (!_formKey.currentState!.validate()) {
       return;
     }
@@ -78,17 +81,21 @@ class _LoginPageState extends State<LoginPage> {
         _goHome();
         return;
       }
-      ScaffoldMessenger.of(
+      PlantivaFeedback.show(
         context,
-      ).showSnackBar(SnackBar(content: Text(e.message ?? 'Login failed.')));
+        message: AuthErrorMessages.login(e),
+        type: PlantivaFeedbackType.error,
+      );
     } catch (e) {
       if (!mounted) return;
       if (FirebaseAuth.instance.currentUser != null) {
         _goHome();
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Login failed. Please try again. ($e)')),
+      PlantivaFeedback.show(
+        context,
+        message: AuthErrorMessages.login(e),
+        type: PlantivaFeedbackType.error,
       );
     } finally {
       if (mounted && !_navigatingHome) setState(() => _loading = false);
@@ -96,6 +103,7 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _handleGoogleSignIn() async {
+    if (_loading) return;
     setState(() => _loading = true);
     try {
       await _authService.signInWithGoogle();
@@ -106,18 +114,25 @@ class _LoginPageState extends State<LoginPage> {
         _goHome();
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message ?? 'Google sign-in failed.')),
-      );
+      final message = AuthErrorMessages.googleSignIn(e);
+      if (message.isNotEmpty) {
+        PlantivaFeedback.show(
+          context,
+          message: message,
+          type: PlantivaFeedbackType.error,
+        );
+      }
     } catch (e) {
       if (!mounted) return;
       if (FirebaseAuth.instance.currentUser != null) {
         _goHome();
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text('Google sign-in failed. Please try again. ($e)')),
+      final message = AuthErrorMessages.googleSignIn(e);
+      PlantivaFeedback.show(
+        context,
+        message: message,
+        type: PlantivaFeedbackType.error,
       );
     } finally {
       if (mounted && !_navigatingHome) setState(() => _loading = false);
