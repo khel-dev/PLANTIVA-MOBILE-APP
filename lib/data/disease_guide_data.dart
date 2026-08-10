@@ -716,8 +716,8 @@ class DiseaseGuideData {
     imageUrl: 'assets/images/banana_bunchy_top.jpg',
     fallbackAsset: _fallback,
     scientificName: 'Banana bunchy top virus (BBTV)',
-    isAiDetectable: false,
-    modelLabel: null,
+    isAiDetectable: true,
+    modelLabel: 'Augmented Banana Bunchy Top Disease',
     summary:
         'A highly destructive banana virus disease that can severely stunt plants and make infected mats unproductive.',
     overview:
@@ -797,7 +797,7 @@ class DiseaseGuideData {
       DiseaseQuickFact(label: 'Spread Method', value: 'Banana aphid'),
       DiseaseQuickFact(label: 'Planting Risk', value: 'Infected suckers'),
       DiseaseQuickFact(label: 'Risk Level', value: 'High'),
-      DiseaseQuickFact(label: 'AI Status', value: 'Guide only'),
+      DiseaseQuickFact(label: 'AI Status', value: 'AI detectable'),
     ],
     farmerTips: [
       'Do not use suckers from plants with bunching or severe stunting.',

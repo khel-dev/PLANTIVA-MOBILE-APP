@@ -98,7 +98,9 @@ class _TreatmentRecommendationScreenState
         'Use locally approved products only as directed on the product label.',
       ];
     }
-    if (label.contains('mosaic') || label.contains('virus')) {
+    if (label.contains('mosaic') ||
+        label.contains('virus') ||
+        label.contains('bunchy top')) {
       return const [
         'Do not use suspected infected plants as planting material.',
         'Monitor nearby plants for mosaic patterns or abnormal streaking.',

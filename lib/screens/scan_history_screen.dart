@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_plantiva/config/app_colors.dart';
 import 'package:flutter_plantiva/models/scan_record.dart';
 import 'package:flutter_plantiva/services/scan_history_service.dart';
+import 'package:flutter_plantiva/utils/disease_labels.dart';
 import 'package:flutter_plantiva/widgets/recent_scan_card.dart';
 
 class ScanHistoryScreen extends StatefulWidget {
@@ -26,6 +27,7 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
     'Yellow Sigatoka',
     'Moko Disease',
     'Bract Mosaic Virus',
+    'Bunchy Top Disease',
     'Insect Pest',
   ];
 
@@ -57,9 +59,7 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
     var list = List<ScanRecord>.from(_scans);
     final q = _search.text.trim().toLowerCase();
     if (q.isNotEmpty) {
-      list = list
-          .where((s) => s.label.toLowerCase().contains(q))
-          .toList();
+      list = list.where((s) => s.label.toLowerCase().contains(q)).toList();
     }
     if (_filter != 'All') {
       list = list.where((s) {
@@ -77,6 +77,8 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
             return l.contains('moko');
           case 'Bract Mosaic Virus':
             return l.contains('bract mosaic') || l.contains('mosaic');
+          case 'Bunchy Top Disease':
+            return DiseaseLabels.normalize(s.label) == 'Bunchy Top Disease';
           case 'Insect Pest':
             return l.contains('insect');
           default:
@@ -120,7 +122,8 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
                     ),
                   ),
                   IconButton(
-                    onPressed: () => setState(() => _newestFirst = !_newestFirst),
+                    onPressed: () =>
+                        setState(() => _newestFirst = !_newestFirst),
                     icon: Icon(
                       _newestFirst
                           ? Icons.arrow_downward_rounded

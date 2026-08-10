@@ -65,6 +65,8 @@ class ResultScreen extends StatelessWidget {
       return 'Moko Disease is a bacterial wilt caused by Ralstonia solanacearum. It is one of the most destructive banana diseases, causing internal browning and complete plant collapse. Highly contagious.';
     } else if (l.contains('bract mosaic')) {
       return 'Bract Mosaic Virus Disease is caused by the Banana Bract Mosaic Virus (BBrMV), transmitted by aphids. It causes mosaic patterns on bracts and leaves, leading to reduced yield and poor fruit quality.';
+    } else if (l.contains('bunchy top')) {
+      return 'Banana Bunchy Top Disease is a serious viral disease spread mainly by banana aphids and infected planting materials. Infected plants can become stunted and unproductive, so early reporting and careful field action are important.';
     } else if (l.contains('insect pest')) {
       return 'Insect Pest Disease refers to damage caused by various insects attacking the banana leaf. This includes thrips, aphids, and weevils that feed on leaf tissue, causing characteristic damage patterns.';
     }
@@ -85,6 +87,8 @@ class ResultScreen extends StatelessWidget {
       return '• Destroy infected plants immediately\n• Disinfect tools with 10% bleach solution\n• Avoid wounding healthy plants\n• Report to local agriculture office\n• Quarantine affected area';
     } else if (l.contains('bract mosaic')) {
       return '• Remove and destroy infected plants\n• Control aphid populations with insecticide\n• Use virus-free planting materials\n• No chemical treatment available for virus\n• Monitor neighboring plants closely';
+    } else if (l.contains('bunchy top')) {
+      return '• Mark the suspect mat and avoid taking suckers from it\n• Consult the Municipal Agriculture Office or agriculture technician\n• Follow official removal and sanitation guidance\n• Manage banana aphids using locally recommended practices\n• Use only disease-free planting materials';
     } else if (l.contains('insect pest')) {
       return '• Apply appropriate insecticide\n• Remove heavily damaged leaves\n• Use sticky traps to monitor pests\n• Consider biological control methods\n• Inspect plants weekly for new damage';
     }

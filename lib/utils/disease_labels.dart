@@ -5,6 +5,7 @@ class DiseaseLabels {
   static const categories = <String>[
     'Black Sigatoka',
     'Bract Mosaic Virus',
+    'Bunchy Top Disease',
     'Healthy Leaf',
     'Insect Pest',
     'Moko Disease',
@@ -18,6 +19,9 @@ class DiseaseLabels {
     if (l.contains('bract mosaic') || l.contains('mosaic')) {
       return 'Bract Mosaic Virus';
     }
+    if (l.contains('bunchy top') || l.contains('bbtd')) {
+      return 'Bunchy Top Disease';
+    }
     if (l.contains('healthy')) return 'Healthy Leaf';
     if (l.contains('insect') || l.contains('pest')) return 'Insect Pest';
     if (l.contains('moko')) return 'Moko Disease';
@@ -26,8 +30,7 @@ class DiseaseLabels {
     return raw?.trim().isNotEmpty == true ? raw!.trim() : 'Unknown';
   }
 
-  static bool isHealthy(String? raw) =>
-      normalize(raw) == 'Healthy Leaf';
+  static bool isHealthy(String? raw) => normalize(raw) == 'Healthy Leaf';
 
   static bool isDiseased(String? raw) => !isHealthy(raw);
 
@@ -37,6 +40,8 @@ class DiseaseLabels {
         return 'Fusarium Wilt (Panama Disease)';
       case 'Bract Mosaic Virus':
         return 'Banana Bract Mosaic Virus (BBMV)';
+      case 'Bunchy Top Disease':
+        return 'Banana Bunchy Top Virus (BBTV)';
       default:
         return category;
     }
@@ -56,6 +61,8 @@ class DiseaseLabels {
         return const Color(0xFFC62828);
       case 'Bract Mosaic Virus':
         return const Color(0xFF6A1B9A);
+      case 'Bunchy Top Disease':
+        return const Color(0xFFAD1457);
       case 'Insect Pest':
         return const Color(0xFF00695C);
       default:
@@ -76,6 +83,8 @@ class DiseaseLabels {
         return Icons.biotech_outlined;
       case 'Bract Mosaic Virus':
         return Icons.bug_report_outlined;
+      case 'Bunchy Top Disease':
+        return Icons.local_florist_outlined;
       case 'Insect Pest':
         return Icons.pest_control_outlined;
       default:
