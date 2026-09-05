@@ -13,6 +13,7 @@ import 'package:flutter_plantiva/services/profile_service.dart';
 import 'package:flutter_plantiva/utils/auth_error_messages.dart';
 import 'package:flutter_plantiva/utils/plantiva_feedback.dart';
 import 'package:flutter_plantiva/utils/validators.dart';
+import 'package:flutter_plantiva/widgets/plantiva_decorated_background.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -137,179 +138,182 @@ class _ProfilePageState extends State<ProfilePage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFE7F5E9),
-      body: SafeArea(
-        child: FadeTransition(
-          opacity: _fadeAnim,
-          child: StreamBuilder<DocumentSnapshot>(
-            stream: _profileService.userStream(),
-            builder: (context, snapshot) {
-              if (!snapshot.hasData) {
-                return const Center(child: CircularProgressIndicator());
-              }
+      backgroundColor: const Color(0xFFF7F6F1),
+      body: PlantivaDecoratedBackground(
+        child: SafeArea(
+          child: FadeTransition(
+            opacity: _fadeAnim,
+            child: StreamBuilder<DocumentSnapshot>(
+              stream: _profileService.userStream(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-              final userData =
-                  snapshot.data?.data() as Map<String, dynamic>? ?? {};
-              final storedName = (userData['fullName'] as String?)?.trim();
-              final authName =
-                  FirebaseAuth.instance.currentUser?.displayName?.trim();
-              final fullName = storedName?.isNotEmpty == true
-                  ? storedName!
-                  : authName?.isNotEmpty == true
-                      ? authName!
-                      : 'Plantiva User';
-              final email = userData['email'] as String? ??
-                  FirebaseAuth.instance.currentUser?.email ??
-                  '';
-              final contact = userData['phoneNumber'] as String? ??
-                  userData['contactNumber'] as String? ??
-                  '';
-              final location = userData['location'] as String? ??
-                  userData['farmLocation'] as String? ??
-                  '';
-              final photoUrl = userData['photoUrl'] as String?;
-              final totalScans = (userData['totalScans'] as num?)?.toInt() ?? 0;
+                final userData =
+                    snapshot.data?.data() as Map<String, dynamic>? ?? {};
+                final storedName = (userData['fullName'] as String?)?.trim();
+                final authName =
+                    FirebaseAuth.instance.currentUser?.displayName?.trim();
+                final fullName = storedName?.isNotEmpty == true
+                    ? storedName!
+                    : authName?.isNotEmpty == true
+                        ? authName!
+                        : 'Plantiva User';
+                final email = userData['email'] as String? ??
+                    FirebaseAuth.instance.currentUser?.email ??
+                    '';
+                final contact = userData['phoneNumber'] as String? ??
+                    userData['contactNumber'] as String? ??
+                    '';
+                final location = userData['location'] as String? ??
+                    userData['farmLocation'] as String? ??
+                    '';
+                final photoUrl = userData['photoUrl'] as String?;
+                final totalScans =
+                    (userData['totalScans'] as num?)?.toInt() ?? 0;
 
-              return SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Profile',
-                      style: TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF202422),
+                return SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Profile',
+                        style: TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF202422),
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 20),
-                    _ProfileHeaderCard(
-                      fullName: fullName,
-                      email: email,
-                      photoUrl: photoUrl,
-                      totalScans: totalScans,
-                      onPhotoTap: () => _showPhotoSheet(photoUrl),
-                    ),
-                    const SizedBox(height: 20),
-                    _ProfileInfoCard(
-                      fullName: fullName,
-                      email: email,
-                      contact: contact,
-                      location: location,
-                      onSave: (name, phone, loc) async {
-                        await _profileService.updateProfile(
-                          fullName: name,
-                          contactNumber: phone,
-                          farmLocation: loc,
-                        );
-                        if (context.mounted) {
-                          PlantivaFeedback.show(
-                            context,
-                            message: 'Profile updated successfully.',
-                            type: PlantivaFeedbackType.success,
+                      const SizedBox(height: 20),
+                      _ProfileHeaderCard(
+                        fullName: fullName,
+                        email: email,
+                        photoUrl: photoUrl,
+                        totalScans: totalScans,
+                        onPhotoTap: () => _showPhotoSheet(photoUrl),
+                      ),
+                      const SizedBox(height: 20),
+                      _ProfileInfoCard(
+                        fullName: fullName,
+                        email: email,
+                        contact: contact,
+                        location: location,
+                        onSave: (name, phone, loc) async {
+                          await _profileService.updateProfile(
+                            fullName: name,
+                            contactNumber: phone,
+                            farmLocation: loc,
                           );
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 24),
-                    const Text(
-                      'Settings',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF202422),
+                          if (context.mounted) {
+                            PlantivaFeedback.show(
+                              context,
+                              message: 'Profile updated successfully.',
+                              type: PlantivaFeedbackType.success,
+                            );
+                          }
+                        },
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                    _SettingsTile(
-                      icon: Icons.notifications_none_rounded,
-                      title: 'Notification Settings',
-                      subtitle: 'Alerts, updates & reminders',
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute<void>(
-                          builder: (_) => const NotificationSettingsScreen(),
+                      const SizedBox(height: 24),
+                      const Text(
+                        'Settings',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF202422),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 10),
-                    _SettingsTile(
-                      icon: Icons.help_outline_rounded,
-                      title: 'Help Center',
-                      subtitle: 'FAQs and support',
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute<void>(
-                          builder: (_) => const HelpCenterScreen(),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    _SettingsTile(
-                      icon: Icons.security_rounded,
-                      title: 'Privacy & Security',
-                      subtitle: 'Manage your data and access',
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute<void>(
-                          builder: (_) => const PrivacySecurityScreen(),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    _LogoutTile(
-                      onTap: () {
-                        final nav = Navigator.of(context);
-                        showDialog<void>(
-                          context: context,
-                          builder: (dialogContext) => AlertDialog(
-                            title: const Text('Sign Out?'),
-                            content: const Text(
-                              'Are you sure you want to sign out?',
-                            ),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(dialogContext),
-                                child: const Text('Cancel'),
-                              ),
-                              TextButton(
-                                onPressed: () async {
-                                  Navigator.pop(dialogContext);
-                                  try {
-                                    await _authService.signOut();
-                                    if (context.mounted) {
-                                      nav.pushAndRemoveUntil(
-                                        MaterialPageRoute<void>(
-                                          builder: (_) => const LandingPage(),
-                                        ),
-                                        (_) => false,
-                                      );
-                                    }
-                                  } catch (e) {
-                                    if (context.mounted) {
-                                      PlantivaFeedback.show(
-                                        context,
-                                        message: AuthErrorMessages.logout(e),
-                                        type: PlantivaFeedbackType.error,
-                                      );
-                                    }
-                                  }
-                                },
-                                child: const Text(
-                                  'Sign Out',
-                                  style: TextStyle(color: Colors.red),
-                                ),
-                              ),
-                            ],
+                      const SizedBox(height: 12),
+                      _SettingsTile(
+                        icon: Icons.notifications_none_rounded,
+                        title: 'Notification Settings',
+                        subtitle: 'Alerts, updates & reminders',
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute<void>(
+                            builder: (_) => const NotificationSettingsScreen(),
                           ),
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              );
-            },
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      _SettingsTile(
+                        icon: Icons.help_outline_rounded,
+                        title: 'Help Center',
+                        subtitle: 'FAQs and support',
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute<void>(
+                            builder: (_) => const HelpCenterScreen(),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      _SettingsTile(
+                        icon: Icons.security_rounded,
+                        title: 'Privacy & Security',
+                        subtitle: 'Manage your data and access',
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute<void>(
+                            builder: (_) => const PrivacySecurityScreen(),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      _LogoutTile(
+                        onTap: () {
+                          final nav = Navigator.of(context);
+                          showDialog<void>(
+                            context: context,
+                            builder: (dialogContext) => AlertDialog(
+                              title: const Text('Sign Out?'),
+                              content: const Text(
+                                'Are you sure you want to sign out?',
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(dialogContext),
+                                  child: const Text('Cancel'),
+                                ),
+                                TextButton(
+                                  onPressed: () async {
+                                    Navigator.pop(dialogContext);
+                                    try {
+                                      await _authService.signOut();
+                                      if (context.mounted) {
+                                        nav.pushAndRemoveUntil(
+                                          MaterialPageRoute<void>(
+                                            builder: (_) => const LandingPage(),
+                                          ),
+                                          (_) => false,
+                                        );
+                                      }
+                                    } catch (e) {
+                                      if (context.mounted) {
+                                        PlantivaFeedback.show(
+                                          context,
+                                          message: AuthErrorMessages.logout(e),
+                                          type: PlantivaFeedbackType.error,
+                                        );
+                                      }
+                                    }
+                                  },
+                                  child: const Text(
+                                    'Sign Out',
+                                    style: TextStyle(color: Colors.red),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
           ),
         ),
       ),

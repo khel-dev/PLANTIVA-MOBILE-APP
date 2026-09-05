@@ -10,7 +10,6 @@ class TreatmentRecommendationScreen extends StatefulWidget {
     super.key,
     required this.label,
     required this.confidence,
-    required this.severity,
     required this.summary,
     required this.recommendation,
     required this.isHealthy,
@@ -22,7 +21,6 @@ class TreatmentRecommendationScreen extends StatefulWidget {
 
   final String label;
   final String confidence;
-  final String severity;
   final String summary;
   final String recommendation;
   final bool isHealthy;
@@ -62,19 +60,6 @@ class _TreatmentRecommendationScreenState
   void dispose() {
     _intro.dispose();
     super.dispose();
-  }
-
-  Color get _severityColor {
-    switch (widget.severity) {
-      case 'High':
-        return const Color(0xFFD32F2F);
-      case 'Moderate':
-        return const Color(0xFFF57F17);
-      case 'Low':
-        return const Color(0xFF388E3C);
-      default:
-        return AppColors.green;
-    }
   }
 
   List<String> get _careTips {
@@ -178,8 +163,6 @@ class _TreatmentRecommendationScreenState
                     imagePath: widget.imagePath,
                     imageUrl: widget.imageUrl,
                     imageBase64: widget.imageBase64,
-                    severity: widget.severity,
-                    severityColor: _severityColor,
                   ),
                 ),
                 SliverPadding(
@@ -187,34 +170,30 @@ class _TreatmentRecommendationScreenState
                   sliver: SliverList(
                     delegate: SliverChildListDelegate(
                       [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _MetricCard(
-                                title: 'Confidence',
-                                value: '${confidenceValue.toStringAsFixed(0)}%',
-                                icon: Icons.speed_rounded,
-                                color: AppColors.green,
-                                progress: confidenceValue / 100,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: _MetricCard(
-                                title: 'Severity',
-                                value: widget.severity,
-                                icon: widget.isHealthy
-                                    ? Icons.check_circle_outline
-                                    : Icons.warning_amber_rounded,
-                                color: _severityColor,
-                              ),
-                            ),
-                          ],
+                        _MetricCard(
+                          title: 'AI Classification Confidence',
+                          value: '${confidenceValue.toStringAsFixed(0)}%',
+                          icon: Icons.speed_rounded,
+                          color: AppColors.green,
+                          progress: confidenceValue / 100,
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'This score reflects the model\'s class match. It does not measure disease severity.',
+                          style: TextStyle(
+                            color: AppColors.mutedText,
+                            fontSize: 12,
+                            height: 1.4,
+                          ),
                         ),
                         const SizedBox(height: 14),
                         _SectionCard(
-                          title: 'Recommended Treatment',
-                          icon: Icons.medical_services_outlined,
+                          title: widget.isHealthy
+                              ? 'Monitoring and Care Guidance'
+                              : 'Management and Care Guidance',
+                          icon: widget.isHealthy
+                              ? Icons.eco_outlined
+                              : Icons.medical_services_outlined,
                           child: Text(widget.recommendation, style: _body),
                         ),
                         _SectionCard(
@@ -240,7 +219,7 @@ class _TreatmentRecommendationScreenState
                           child: Text(
                             widget.savedScanId == null
                                 ? 'This recommendation can still be used, but the scan was not confirmed as saved.'
-                                : 'This diagnosis is saved in your scan history.',
+                                : 'This classification result is saved in your scan history.',
                             style: _body,
                           ),
                         ),
@@ -302,16 +281,12 @@ class _Header extends StatelessWidget {
     required this.imagePath,
     required this.imageUrl,
     required this.imageBase64,
-    required this.severity,
-    required this.severityColor,
   });
 
   final String label;
   final String? imagePath;
   final String? imageUrl;
   final String? imageBase64;
-  final String severity;
-  final Color severityColor;
 
   @override
   Widget build(BuildContext context) {
@@ -360,12 +335,12 @@ class _Header extends StatelessWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
-                  color: severityColor.withValues(alpha: 0.96),
+                  color: AppColors.green.withValues(alpha: 0.96),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Text(
-                  '$severity severity',
-                  style: const TextStyle(
+                child: const Text(
+                  'IMAGE-BASED SCREENING',
+                  style: TextStyle(
                     color: Colors.white,
                     fontSize: 12,
                     fontWeight: FontWeight.w800,
@@ -384,7 +359,7 @@ class _Header extends StatelessWidget {
               ),
               const SizedBox(height: 6),
               const Text(
-                'Treatment recommendation for banana farmers',
+                'Educational management guidance for banana farmers',
                 style: TextStyle(color: Colors.white70, fontSize: 14),
               ),
             ],

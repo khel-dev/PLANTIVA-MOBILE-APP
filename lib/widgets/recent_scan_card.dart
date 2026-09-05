@@ -51,7 +51,7 @@ class _RecentScanCardState extends State<RecentScanCard>
       builder: (ctx) => AlertDialog(
         title: const Text('Delete scan?'),
         content: const Text(
-          'This diagnosis report will be permanently removed from your history.',
+          'This scan report will be permanently removed from your history.',
         ),
         actions: [
           TextButton(
@@ -98,7 +98,6 @@ class _RecentScanCardState extends State<RecentScanCard>
         TreatmentRecommendationScreen(
           label: scan.label,
           confidence: scan.confidence,
-          severity: scan.effectiveSeverity,
           summary: scan.effectiveSummary,
           recommendation: scan.effectiveRecommendations,
           isHealthy: scan.isHealthy,
@@ -328,7 +327,7 @@ class RecentScansEmptyState extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Tap the scan button to analyze a banana leaf.\nYour diagnosis reports will appear here.',
+            'Tap the scan button to analyze a banana leaf.\nYour classification reports will appear here.',
             textAlign: TextAlign.center,
             style: TextStyle(
               color: Colors.grey.shade600,

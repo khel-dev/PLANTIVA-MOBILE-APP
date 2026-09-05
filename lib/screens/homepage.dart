@@ -13,6 +13,7 @@ import 'package:flutter_plantiva/models/scan_record.dart';
 import 'package:flutter_plantiva/services/scan_history_service.dart';
 import 'package:flutter_plantiva/screens/scanner_screen.dart';
 import 'package:flutter_plantiva/utils/page_transitions.dart';
+import 'package:flutter_plantiva/widgets/plantiva_decorated_background.dart';
 import 'package:flutter_plantiva/widgets/recent_scan_card.dart';
 
 class HomePage extends StatefulWidget {
@@ -55,7 +56,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFE7F5E9),
+      backgroundColor: const Color(0xFFF7F6F1),
       body: SafeArea(child: _buildTabBody()),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       floatingActionButton: TweenAnimationBuilder<double>(
@@ -102,13 +103,15 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   Widget _buildTabBody() {
     switch (_tabIndex) {
       case 1:
-        return const _SavedScansTab();
+        return const PlantivaDecoratedBackground(
+          child: _SavedScansTab(),
+        );
       case 2:
         return const DiseaseGuideScreen();
       case 3:
         return const ProfilePage();
       default:
-        return _buildHomeContent();
+        return PlantivaDecoratedBackground(child: _buildHomeContent());
     }
   }
 

@@ -8,7 +8,6 @@ import 'package:flutter_plantiva/config/app_colors.dart';
 import 'package:flutter_plantiva/models/scan_record.dart';
 import 'package:flutter_plantiva/services/scan_history_service.dart';
 import 'package:flutter_plantiva/utils/plantiva_feedback.dart';
-import 'package:flutter_plantiva/utils/scan_diagnosis_helper.dart';
 import 'package:flutter_plantiva/widgets/scan_image_widget.dart';
 
 class ScanDetailsScreen extends StatefulWidget {
@@ -45,29 +44,15 @@ class _ScanDetailsScreenState extends State<ScanDetailsScreen> {
 
   ScanRecord get scan => widget.scan;
 
-  Color _severityColor(String severity) {
-    switch (severity) {
-      case 'High':
-        return const Color(0xFFD32F2F);
-      case 'Moderate':
-        return const Color(0xFFB8860B);
-      case 'Low':
-        return const Color(0xFF388E3C);
-      default:
-        return const Color(0xFF388E3C);
-    }
-  }
-
   Future<void> _shareReport() async {
     final date = scan.createdAt != null
         ? DateFormat('MMM d, yyyy h:mm a').format(scan.createdAt!)
         : 'Unknown date';
     final text = '''
-PLANTIVA Diagnosis Report
+PLANTIVA Classification Report
 --------------------
-Disease: ${scan.label}
-Confidence: ${scan.confidence}
-Severity: ${scan.effectiveSeverity}
+Detected condition: ${scan.label}
+AI Classification Confidence: ${scan.confidence}
 Scanned: $date
 
 Summary:
@@ -75,6 +60,8 @@ ${scan.effectiveSummary}
 
 Recommendations:
 ${scan.effectiveRecommendations}
+
+PLANTIVA provides image-based screening and educational information. Visual symptoms may overlap between conditions.
 ''';
     await Share.share(text, subject: 'PLANTIVA Scan Report - ${scan.label}');
   }
@@ -93,7 +80,7 @@ ${scan.effectiveRecommendations}
             pw.Header(
               level: 0,
               child: pw.Text(
-                'PLANTIVA Diagnosis Report',
+                'PLANTIVA Classification Report',
                 style: pw.TextStyle(
                   fontSize: 22,
                   fontWeight: pw.FontWeight.bold,
@@ -103,15 +90,19 @@ ${scan.effectiveRecommendations}
             ),
             pw.SizedBox(height: 12),
             pw.Text(
-              'Disease: ${scan.label}',
+              'Detected condition: ${scan.label}',
               style: pw.TextStyle(
                 fontSize: 16,
                 fontWeight: pw.FontWeight.bold,
               ),
             ),
-            pw.Text('Confidence: ${scan.confidence}'),
-            pw.Text('Severity: ${scan.effectiveSeverity}'),
+            pw.Text('AI Classification Confidence: ${scan.confidence}'),
             pw.Text('Scanned: $date'),
+            pw.SizedBox(height: 8),
+            pw.Text(
+              'This score reflects how strongly the model matched the image to this class. It does not measure disease severity.',
+              style: const pw.TextStyle(fontSize: 10),
+            ),
             pw.SizedBox(height: 16),
             pw.Text(
               'Summary',
@@ -124,6 +115,11 @@ ${scan.effectiveRecommendations}
               style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
             ),
             pw.Text(scan.effectiveRecommendations),
+            pw.SizedBox(height: 16),
+            pw.Text(
+              'PLANTIVA provides image-based screening and educational information. Visual symptoms may overlap between conditions.',
+              style: const pw.TextStyle(fontSize: 10),
+            ),
           ],
         ),
       );
@@ -154,7 +150,7 @@ ${scan.effectiveRecommendations}
       builder: (ctx) => AlertDialog(
         title: const Text('Delete this scan?'),
         content: const Text(
-          'This diagnosis report will be permanently removed.',
+          'This scan report will be permanently removed.',
         ),
         actions: [
           TextButton(
@@ -207,8 +203,6 @@ ${scan.effectiveRecommendations}
     final label = scan.label;
     final confidence = scan.confidence;
     final isHealthy = scan.isHealthy;
-    final severity = scan.effectiveSeverity;
-    final severityColor = _severityColor(severity);
     final confidenceValue = scan.confidenceValue;
     final dateStr = scan.createdAt != null
         ? DateFormat('EEEE, MMM d, yyyy • h:mm a').format(scan.createdAt!)
@@ -350,33 +344,27 @@ ${scan.effectiveRecommendations}
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: _metricBox(
-                                        'Confidence',
-                                        '${confidenceValue.toStringAsFixed(0)}%',
-                                        AppColors.green,
-                                        confidenceValue / 100,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: _metricBox(
-                                        'Severity',
-                                        severity,
-                                        severityColor,
-                                        null,
-                                      ),
-                                    ),
-                                  ],
+                                _metricBox(
+                                  'AI Classification Confidence',
+                                  '${confidenceValue.toStringAsFixed(0)}%',
+                                  AppColors.green,
+                                  confidenceValue / 100,
                                 ),
                                 const SizedBox(height: 14),
                                 Text(
-                                  ScanDiagnosisHelper.severityAction(severity),
+                                  'This score reflects how strongly the model matched the image to this class. It does not measure disease severity.',
                                   style: TextStyle(
                                     color: Colors.grey.shade700,
                                     height: 1.45,
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                                Text(
+                                  'PLANTIVA provides image-based screening and educational information. Visual symptoms may overlap between conditions.',
+                                  style: TextStyle(
+                                    color: Colors.grey.shade600,
+                                    fontSize: 12,
+                                    height: 1.4,
                                   ),
                                 ),
                                 const SizedBox(height: 14),

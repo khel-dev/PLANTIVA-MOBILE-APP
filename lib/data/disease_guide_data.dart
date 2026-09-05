@@ -91,11 +91,11 @@ class DiseaseGuideData {
     ],
     treatments: [
       DiseaseTreatment(
-        title: 'Immediate actions',
+        title: 'Initial management steps',
         steps: [
           'Identify and flag heavily infected mats',
           'Remove the worst-affected leaves and burn or bury them',
-          'Begin fungicide program within 48 hours',
+          'Consult local agriculture guidance before starting a fungicide program',
         ],
       ),
       DiseaseTreatment(
@@ -294,7 +294,7 @@ class DiseaseGuideData {
       DiseaseTreatment(
         title: 'Isolation procedures',
         steps: [
-          'Rogue and destroy infected plants immediately',
+          'Consult local plant-health authorities before removing suspected plants',
           'Quarantine the affected zone — no movement of plant material',
           'Do not replant susceptible varieties in the same soil',
         ],
@@ -356,7 +356,7 @@ class DiseaseGuideData {
     overview:
         'Moko disease is caused by Ralstonia solanacearum. It spreads through insects, tools, and infected planting material, causing internal browning and sudden wilt.',
     whyDangerous:
-        'Bacteria multiply quickly inside the plant. A single infected mat can spread to neighbors within weeks if not destroyed immediately.',
+        'Bacteria multiply quickly inside the plant, and an infected mat can spread the disease to neighboring plants without appropriate control.',
     symptoms: [
       DiseaseSymptom(
         title: 'Sudden wilting',
@@ -401,9 +401,9 @@ class DiseaseGuideData {
     ],
     treatments: [
       DiseaseTreatment(
-        title: 'Emergency response',
+        title: 'Response guidance',
         steps: [
-          'Destroy infected mats immediately — do not compost',
+          'Follow local plant-health authority guidance for confirmed infected mats and do not compost suspect material',
           'Quarantine a buffer zone around the outbreak',
           'Report to local plant quarantine authorities',
         ],
@@ -425,7 +425,7 @@ class DiseaseGuideData {
       DiseaseQuickFact(label: 'Economic Impact', value: 'Severe'),
     ],
     farmerTips: [
-      'Separate infected plants immediately — do not wait for confirmation.',
+      'Mark and isolate suspected plants while requesting professional confirmation.',
       'Keep a dedicated disinfectant bucket at every field entrance.',
     ],
     relatedIds: ['panama', 'insect_pest'],

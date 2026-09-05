@@ -39,9 +39,6 @@ class ScanRecord {
 
   double get confidenceValue => ScanDiagnosisHelper.parseConfidence(confidence);
 
-  String get effectiveSeverity =>
-      severity ?? ScanDiagnosisHelper.severity(label, confidence);
-
   String get effectiveSummary =>
       summary ?? ScanDiagnosisHelper.aboutCondition(label);
 
@@ -53,7 +50,6 @@ class ScanRecord {
         'confidence': confidence,
         if (rawLabel != null) 'raw_label': rawLabel!,
         if (insights != null) 'insights': insights!,
-        'severity': effectiveSeverity,
         'summary': effectiveSummary,
         'recommendations': effectiveRecommendations,
       };
@@ -99,19 +95,21 @@ class ScanRecord {
   }
 }
 
-enum AnalyticsPeriod { week, month, threeMonths, year }
+enum AnalyticsPeriod { week, month, threeMonths, year, allTime }
 
 extension AnalyticsPeriodX on AnalyticsPeriod {
   String get label {
     switch (this) {
       case AnalyticsPeriod.week:
-        return 'This Week';
+        return 'Last 7 Days';
       case AnalyticsPeriod.month:
-        return 'This Month';
+        return 'Last 30 Days';
       case AnalyticsPeriod.threeMonths:
         return 'Last 3 Months';
       case AnalyticsPeriod.year:
         return 'This Year';
+      case AnalyticsPeriod.allTime:
+        return 'All Time';
     }
   }
 
@@ -120,11 +118,13 @@ extension AnalyticsPeriodX on AnalyticsPeriod {
       case AnalyticsPeriod.week:
         return now.subtract(const Duration(days: 7));
       case AnalyticsPeriod.month:
-        return DateTime(now.year, now.month, 1);
+        return now.subtract(const Duration(days: 30));
       case AnalyticsPeriod.threeMonths:
         return DateTime(now.year, now.month - 2, 1);
       case AnalyticsPeriod.year:
         return DateTime(now.year, 1, 1);
+      case AnalyticsPeriod.allTime:
+        return DateTime.fromMillisecondsSinceEpoch(0);
     }
   }
 }

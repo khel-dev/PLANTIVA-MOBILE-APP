@@ -6,6 +6,7 @@ import 'package:flutter_plantiva/screens/disease_guide/disease_detail_screen.dar
 import 'package:flutter_plantiva/services/disease_guide_service.dart';
 import 'package:flutter_plantiva/utils/page_transitions.dart';
 import 'package:flutter_plantiva/widgets/disease_guide/disease_card.dart';
+import 'package:flutter_plantiva/widgets/plantiva_decorated_background.dart';
 
 class DiseaseGuideScreen extends StatefulWidget {
   const DiseaseGuideScreen({super.key});
@@ -96,8 +97,7 @@ class _DiseaseGuideScreenState extends State<DiseaseGuideScreen> {
     final explored = _viewed.length;
     final total = DiseaseGuideData.all.length;
 
-    return ColoredBox(
-      color: const Color(0xFFE7F5E9),
+    return PlantivaDecoratedBackground(
       child: _loading
           ? const Center(child: CircularProgressIndicator())
           : CustomScrollView(

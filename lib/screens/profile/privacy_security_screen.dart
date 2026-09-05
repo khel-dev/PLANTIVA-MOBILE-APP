@@ -6,6 +6,7 @@ import 'package:flutter_plantiva/services/auth_service.dart';
 import 'package:flutter_plantiva/services/profile_service.dart';
 import 'package:flutter_plantiva/utils/auth_error_messages.dart';
 import 'package:flutter_plantiva/utils/plantiva_feedback.dart';
+import 'package:flutter_plantiva/widgets/plantiva_decorated_background.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class PrivacySecurityScreen extends StatefulWidget {
@@ -216,7 +217,7 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFE7F5E9),
+      backgroundColor: const Color(0xFFF7F6F1),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -226,113 +227,116 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
           style: TextStyle(fontWeight: FontWeight.w800),
         ),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Container(
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  AppColors.green.withValues(alpha: 0.15),
-                  AppColors.brightGreen.withValues(alpha: 0.08),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.shield_outlined,
-                  color: AppColors.green,
-                  size: 36,
+      body: PlantivaDecoratedBackground(
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    AppColors.green.withValues(alpha: 0.15),
+                    AppColors.brightGreen.withValues(alpha: 0.08),
+                  ],
                 ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Text(
-                    'Your data is encrypted and stored securely in Firebase.',
-                    style: TextStyle(
-                      color: Colors.grey.shade800,
-                      height: 1.4,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.shield_outlined,
+                    color: AppColors.green,
+                    size: 36,
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Text(
+                      'Your data is encrypted and stored securely in Firebase.',
+                      style: TextStyle(
+                        color: Colors.grey.shade800,
+                        height: 1.4,
+                      ),
                     ),
                   ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          _tile(Icons.lock_outline, 'Change Password', _changePassword),
-          _tile(Icons.admin_panel_settings_outlined, 'Manage Permissions', () {
-            PlantivaFeedback.show(
-              context,
-              message:
-                  'Camera and storage permissions are managed in your device Settings app.',
-              type: PlantivaFeedbackType.info,
-            );
-          }),
-          _tile(Icons.data_usage_outlined, 'Data Usage Information', () {
-            showDialog<void>(
-              context: context,
-              builder: (ctx) => AlertDialog(
-                title: const Text('Data Usage'),
-                content: const Text(
-                  'PLANTIVA stores your scan history, profile information, and '
-                  'captured leaf images in Firebase. Images are used only for '
-                  'your diagnosis history and are not shared with third parties.',
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(ctx),
-                    child: const Text('OK'),
-                  ),
                 ],
               ),
-            );
-          }),
-          _tile(Icons.privacy_tip_outlined, 'View Privacy Policy', () {
-            launchUrl(Uri.parse('https://plantiva.app/privacy'));
-          }),
-          const SizedBox(height: 20),
-          Material(
-            color: const Color(0xFFFFEBEE),
-            borderRadius: BorderRadius.circular(18),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(18),
-              onTap: _deleteAccount,
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    Icon(Icons.delete_forever_outlined,
-                        color: Colors.red.shade700),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Delete Account',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w700,
-                              color: Colors.red.shade700,
-                            ),
-                          ),
-                          Text(
-                            'Permanently remove your account and data',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.red.shade400,
-                            ),
-                          ),
-                        ],
-                      ),
+            ),
+            const SizedBox(height: 16),
+            _tile(Icons.lock_outline, 'Change Password', _changePassword),
+            _tile(Icons.admin_panel_settings_outlined, 'Manage Permissions',
+                () {
+              PlantivaFeedback.show(
+                context,
+                message:
+                    'Camera and storage permissions are managed in your device Settings app.',
+                type: PlantivaFeedbackType.info,
+              );
+            }),
+            _tile(Icons.data_usage_outlined, 'Data Usage Information', () {
+              showDialog<void>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: const Text('Data Usage'),
+                  content: const Text(
+                    'PLANTIVA stores your scan history, profile information, and '
+                    'captured leaf images in Firebase. Images are used only for '
+                    'your diagnosis history and are not shared with third parties.',
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      child: const Text('OK'),
                     ),
                   ],
                 ),
+              );
+            }),
+            _tile(Icons.privacy_tip_outlined, 'View Privacy Policy', () {
+              launchUrl(Uri.parse('https://plantiva.app/privacy'));
+            }),
+            const SizedBox(height: 20),
+            Material(
+              color: const Color(0xFFFFEBEE),
+              borderRadius: BorderRadius.circular(18),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(18),
+                onTap: _deleteAccount,
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      Icon(Icons.delete_forever_outlined,
+                          color: Colors.red.shade700),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Delete Account',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                color: Colors.red.shade700,
+                              ),
+                            ),
+                            Text(
+                              'Permanently remove your account and data',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.red.shade400,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

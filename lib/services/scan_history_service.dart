@@ -154,12 +154,9 @@ class ScanHistoryService {
       'confidence': enriched['confidence'] ?? '',
       'rawLabel': enriched['raw_label'] ?? '',
       'raw_label': enriched['raw_label'] ?? '',
-      'severity': enriched['severity'] ?? '',
       'summary': enriched['summary'] ?? '',
       'recommendations': enriched['recommendations'] ?? '',
       'recommendation': enriched['recommendations'] ?? '',
-      'severityAction': enriched['severityAction'] ?? '',
-      'severity_action': enriched['severityAction'] ?? '',
       if ((enriched['insights'] ?? '').trim().isNotEmpty)
         'insights': enriched['insights'],
       'imagePath': localPath,

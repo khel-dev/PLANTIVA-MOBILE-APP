@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_plantiva/config/app_colors.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter_plantiva/widgets/plantiva_decorated_background.dart';
 
 class HelpCenterScreen extends StatefulWidget {
   const HelpCenterScreen({super.key});
@@ -40,7 +41,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFE7F5E9),
+      backgroundColor: const Color(0xFFF7F6F1),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -50,96 +51,96 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
           style: TextStyle(fontWeight: FontWeight.w800),
         ),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          const Text(
-            'Frequently Asked Questions',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
-          ),
-          const SizedBox(height: 12),
-          ...List.generate(_faqs.length, (i) {
-            final f = _faqs[i];
-            final open = _expanded == i;
-            return Container(
-              margin: const EdgeInsets.only(bottom: 10),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(
-                  color: open
-                      ? AppColors.green.withValues(alpha: 0.3)
-                      : const Color(0xFFE8E8E8),
-                ),
-              ),
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
+      body: PlantivaDecoratedBackground(
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            const Text(
+              'Frequently Asked Questions',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 12),
+            ...List.generate(_faqs.length, (i) {
+              final f = _faqs[i];
+              final open = _expanded == i;
+              return Container(
+                margin: const EdgeInsets.only(bottom: 10),
+                decoration: BoxDecoration(
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(18),
-                  onTap: () => setState(() => _expanded = open ? null : i),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                f.$1,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 15,
+                  border: Border.all(
+                    color: open
+                        ? AppColors.green.withValues(alpha: 0.3)
+                        : const Color(0xFFE8E8E8),
+                  ),
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(18),
+                    onTap: () => setState(() => _expanded = open ? null : i),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  f.$1,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 15,
+                                  ),
                                 ),
                               ),
-                            ),
-                            Icon(
-                              open
-                                  ? Icons.expand_less
-                                  : Icons.expand_more,
-                              color: AppColors.green,
+                              Icon(
+                                open ? Icons.expand_less : Icons.expand_more,
+                                color: AppColors.green,
+                              ),
+                            ],
+                          ),
+                          if (open) ...[
+                            const SizedBox(height: 10),
+                            Text(
+                              f.$2,
+                              style: TextStyle(
+                                color: Colors.grey.shade700,
+                                height: 1.5,
+                                fontSize: 14,
+                              ),
                             ),
                           ],
-                        ),
-                        if (open) ...[
-                          const SizedBox(height: 10),
-                          Text(
-                            f.$2,
-                            style: TextStyle(
-                              color: Colors.grey.shade700,
-                              height: 1.5,
-                              fontSize: 14,
-                            ),
-                          ),
                         ],
-                      ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-            );
-          }),
-          const SizedBox(height: 20),
-          _actionTile(
-            Icons.mail_outline,
-            'Contact Support',
-            'support@plantiva.app',
-            () => launchUrl(Uri.parse('mailto:support@plantiva.app')),
-          ),
-          const SizedBox(height: 10),
-          _actionTile(
-            Icons.report_problem_outlined,
-            'Report a Problem',
-            'Tell us about bugs or issues',
-            () {
-              launchUrl(
-                Uri.parse(
-                  'mailto:support@plantiva.app?subject=PLANTIVA%20Bug%20Report',
-                ),
               );
-            },
-          ),
-        ],
+            }),
+            const SizedBox(height: 20),
+            _actionTile(
+              Icons.mail_outline,
+              'Contact Support',
+              'support@plantiva.app',
+              () => launchUrl(Uri.parse('mailto:support@plantiva.app')),
+            ),
+            const SizedBox(height: 10),
+            _actionTile(
+              Icons.report_problem_outlined,
+              'Report a Problem',
+              'Tell us about bugs or issues',
+              () {
+                launchUrl(
+                  Uri.parse(
+                    'mailto:support@plantiva.app?subject=PLANTIVA%20Bug%20Report',
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
       ),
     );
   }

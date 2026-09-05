@@ -1,30 +1,9 @@
-/// Shared diagnosis logic for ResultScreen and ScanDetailsScreen.
+/// Shared educational copy for scan results and saved scan details.
 class ScanDiagnosisHelper {
-  static String severity(String label, String confidence) {
-    if (label.toLowerCase().contains('healthy')) return 'None';
-    final conf = double.tryParse(confidence.replaceAll('%', '')) ?? 0;
-    if (conf >= 90) return 'High';
-    if (conf >= 70) return 'Moderate';
-    return 'Low';
-  }
-
-  static String severityAction(String severity) {
-    switch (severity) {
-      case 'High':
-        return 'Immediate action required within 24 hours to prevent spread.';
-      case 'Moderate':
-        return 'Action recommended within 48 hours to prevent spread.';
-      case 'Low':
-        return 'Monitor closely and apply preventive measures.';
-      default:
-        return 'Plant is in good condition.';
-    }
-  }
-
   static String aboutCondition(String label) {
     final l = label.toLowerCase();
     if (l.contains('healthy')) {
-      return 'Your banana plant is in excellent condition. The leaf shows no signs of disease or pest damage. Continue your current care routine to maintain plant health.';
+      return 'No obvious visual signs matching the supported disease classes were identified in this image. A healthy classification does not guarantee that the entire plant is free from disease or pests.';
     } else if (l.contains('black sigatoka')) {
       return 'Black Sigatoka is a serious fungal disease caused by Mycosphaerella fijiensis. It produces dark streaks and spots on leaves, reducing photosynthesis and causing premature ripening and significant yield loss.';
     } else if (l.contains('yellow sigatoka')) {
@@ -38,23 +17,23 @@ class ScanDiagnosisHelper {
     } else if (l.contains('bunchy top')) {
       return 'Banana Bunchy Top Disease is a serious viral disease spread mainly by banana aphids and infected planting materials. Infected plants can become stunted and unproductive, so early reporting and careful field action are important.';
     } else if (l.contains('insect pest')) {
-      return 'Insect Pest Disease refers to damage caused by various insects attacking the banana leaf. This includes thrips, aphids, and weevils that feed on leaf tissue, causing characteristic damage patterns.';
+      return 'Insect Pest Damage is a general image-classification category for visible feeding or pest-related leaf damage. The exact insect cannot be identified by this model and requires closer inspection.';
     }
-    return 'Consult your local agricultural extension officer for proper diagnosis and treatment.';
+    return 'This is an image-based screening result. Consult a local agricultural extension officer for confirmation and appropriate management.';
   }
 
   static String recommendations(String label) {
     final l = label.toLowerCase();
     if (l.contains('healthy')) {
-      return '• Continue regular watering and fertilization\n• Monitor weekly for early signs of disease\n• Maintain proper spacing for air circulation\n• Apply preventive fungicide monthly';
+      return '• Continue regular monitoring and appropriate crop care\n• Check new leaves for changes after heavy rain or stress\n• Maintain clean tools, suitable spacing, and good drainage\n• Scan again if visible symptoms develop';
     } else if (l.contains('black sigatoka')) {
-      return '• Apply systemic fungicide immediately\n• Remove and destroy all infected leaves\n• Improve air circulation around plants\n• Avoid overhead irrigation\n• Apply fungicide every 3-4 weeks';
+      return '• Review management options with a local agriculture technician\n• Remove and destroy all infected leaves\n• Improve air circulation around plants\n• Avoid overhead irrigation\n• Follow product labels and local guidance when using fungicides';
     } else if (l.contains('yellow sigatoka')) {
       return '• Apply appropriate fungicide spray\n• Remove severely infected leaves\n• Ensure proper drainage\n• Avoid waterlogging around roots\n• Monitor spread to nearby plants';
     } else if (l.contains('panama')) {
       return '• No chemical cure — remove infected plants\n• Destroy infected plants completely\n• Avoid replanting bananas in same soil\n• Use disease-resistant varieties\n• Disinfect all farming tools';
     } else if (l.contains('moko')) {
-      return '• Destroy infected plants immediately\n• Disinfect tools with 10% bleach solution\n• Avoid wounding healthy plants\n• Report to local agriculture office\n• Quarantine affected area';
+      return '• Mark and isolate the suspected plant while seeking confirmation\n• Disinfect tools with 10% bleach solution\n• Avoid wounding healthy plants\n• Report to local agriculture office\n• Follow official guidance for the affected area';
     } else if (l.contains('bract mosaic')) {
       return '• Remove and destroy infected plants\n• Control aphid populations with insecticide\n• Use virus-free planting materials\n• No chemical treatment available for virus\n• Monitor neighboring plants closely';
     } else if (l.contains('bunchy top')) {
@@ -71,14 +50,10 @@ class ScanDiagnosisHelper {
 
   static Map<String, String> enrichResult(Map<String, String> result) {
     final label = result['label'] ?? 'Unknown';
-    final confidence = result['confidence'] ?? '0%';
-    final sev = severity(label, confidence);
     return {
       ...result,
-      'severity': sev,
       'summary': aboutCondition(label),
       'recommendations': recommendations(label),
-      'severityAction': severityAction(sev),
     };
   }
 }

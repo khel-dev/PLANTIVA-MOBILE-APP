@@ -169,13 +169,13 @@ class ClassifierService {
 
       if (entropyVal > _maxEntropy) {
         return {
-          'label': 'Not a Banana Leaf',
+          'label': 'Unable to Classify Reliably',
           'confidence': '0%',
           'raw_label':
-              'The image does not appear to be a banana leaf. Please capture a clear photo of a banana leaf.',
+              'The classifier produced an uncertain result for this image.',
           'validation_status': 'unrelatedOrUnreliable',
           'validation_message':
-              'The AI could not confirm that this is a clear banana leaf image.',
+              'Unable to classify this image reliably. Try another clear photo of a banana leaf in good lighting, with the leaf clearly visible.',
           'entropy': entropyVal.toStringAsFixed(3),
           'top2_margin': '${marginPct.toStringAsFixed(1)}%',
           if (insights.isNotEmpty) 'insights': insights,
@@ -193,7 +193,7 @@ class ClassifierService {
               'Low confidence - please retake photo with better lighting and focus on one clear leaf.',
           'validation_status': 'lowConfidence',
           'validation_message':
-              'The image does not provide enough confidence for a reliable diagnosis.',
+              'Unable to classify this image reliably. Try another clear banana leaf photo in good lighting.',
           'entropy': entropyVal.toStringAsFixed(3),
           'top2_margin': '${marginPct.toStringAsFixed(1)}%',
           if (insights.isNotEmpty) 'insights': insights,
@@ -208,7 +208,7 @@ class ClassifierService {
               'The top disease predictions are too close. Please retake a clearer banana leaf photo.',
           'validation_status': 'highUncertainty',
           'validation_message':
-              'The AI found similar disease patterns and cannot make a safe diagnosis.',
+              'The AI found similar class patterns and cannot provide a reliable classification.',
           'entropy': entropyVal.toStringAsFixed(3),
           'top2_margin': '${marginPct.toStringAsFixed(1)}%',
           if (insights.isNotEmpty) 'insights': insights,

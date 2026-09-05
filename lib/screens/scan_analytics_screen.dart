@@ -1,9 +1,13 @@
+import 'dart:math' as math;
+
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_plantiva/config/app_colors.dart';
 import 'package:flutter_plantiva/models/scan_record.dart';
 import 'package:flutter_plantiva/services/scan_analytics_service.dart';
 import 'package:flutter_plantiva/utils/disease_labels.dart';
+import 'package:flutter_plantiva/widgets/disease_distribution_icon.dart';
+import 'package:flutter_plantiva/widgets/healthy_scan_rate_card.dart';
 
 class ScanAnalyticsScreen extends StatefulWidget {
   const ScanAnalyticsScreen({super.key});
@@ -14,556 +18,447 @@ class ScanAnalyticsScreen extends StatefulWidget {
 
 class _ScanAnalyticsScreenState extends State<ScanAnalyticsScreen>
     with SingleTickerProviderStateMixin {
+  static const _periods = [
+    AnalyticsPeriod.week,
+    AnalyticsPeriod.month,
+    AnalyticsPeriod.allTime,
+  ];
+
   final _service = ScanAnalyticsService();
   AnalyticsPeriod _period = AnalyticsPeriod.month;
   bool _loading = true;
+  String? _error;
   List<ScanRecord> _allScans = [];
-  late AnimationController _anim;
-  late Animation<double> _fade;
+  late final AnimationController _animation;
+  late final Animation<double> _fade;
 
   @override
   void initState() {
     super.initState();
-    _anim = AnimationController(
+    _animation = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 600),
+      duration: const Duration(milliseconds: 450),
     );
-    _fade = CurvedAnimation(parent: _anim, curve: Curves.easeOutCubic);
+    _fade = CurvedAnimation(parent: _animation, curve: Curves.easeOutCubic);
     _load();
   }
 
   Future<void> _load() async {
-    setState(() => _loading = true);
-    final scans = await _service.fetchScans();
-    if (!mounted) return;
-    setState(() {
-      _allScans = scans;
-      _loading = false;
-    });
-    _anim.forward(from: 0);
+    if (mounted) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
+    try {
+      final scans = await _service.fetchScans();
+      if (!mounted) return;
+      setState(() {
+        _allScans = scans;
+        _loading = false;
+      });
+      _animation.forward(from: 0);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error =
+            'Unable to load scan analytics. Check your connection and try again.';
+      });
+    }
   }
 
   @override
   void dispose() {
-    _anim.dispose();
+    _animation.dispose();
     super.dispose();
   }
 
-  ScanAnalyticsData get _data =>
-      _service.buildAnalytics(_allScans, _period);
+  ScanAnalyticsData get _data => _service.buildAnalytics(_allScans, _period);
 
   @override
   Widget build(BuildContext context) {
-    final data = _data;
     return Scaffold(
-      backgroundColor: const Color(0xFFE7F5E9),
+      backgroundColor: const Color(0xFFF7F6F1),
       body: SafeArea(
         child: _loading
-            ? _buildSkeleton()
-            : FadeTransition(
-                opacity: _fade,
-                child: CustomScrollView(
-                  slivers: [
-                    SliverToBoxAdapter(child: _buildHeader()),
-                    SliverPadding(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
-                      sliver: SliverList(
-                        delegate: SliverChildListDelegate([
-                          _buildSummaryGrid(data),
-                          const SizedBox(height: 20),
-                          _buildHealthScore(data),
-                          const SizedBox(height: 20),
-                          _buildSectionTitle('Disease Distribution'),
-                          const SizedBox(height: 12),
-                          _buildBarChart(data),
-                          const SizedBox(height: 20),
-                          _buildSectionTitle('Detection Trends'),
-                          const SizedBox(height: 12),
-                          _buildLineChart(data),
-                          const SizedBox(height: 20),
-                          _buildSectionTitle('AI Insights'),
-                          const SizedBox(height: 12),
-                          ...data.insights.map(_buildInsightCard),
-                          const SizedBox(height: 20),
-                          _buildSectionTitle('Recommended Actions'),
-                          const SizedBox(height: 12),
-                          ...data.recommendations.map(_buildRecCard),
-                        ]),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+            ? const Center(
+                child: CircularProgressIndicator(color: AppColors.green),
+              )
+            : _error != null
+                ? _buildError()
+                : FadeTransition(
+                    opacity: _fade,
+                    child: _buildContent(_data),
+                  ),
       ),
+    );
+  }
+
+  Widget _buildContent(ScanAnalyticsData data) {
+    return CustomScrollView(
+      slivers: [
+        SliverToBoxAdapter(child: _buildHeader()),
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
+          sliver: SliverList(
+            delegate: SliverChildListDelegate([
+              _buildPeriodSelector(),
+              const SizedBox(height: 16),
+              HealthyScanRateCard(
+                healthyCount: data.healthyCount,
+                totalScans: data.totalScans,
+                healthyRate: data.healthyRate,
+              ),
+              const SizedBox(height: 16),
+              _buildSummary(data),
+              const SizedBox(height: 24),
+              _sectionTitle(
+                'Disease Distribution',
+                'Share of your recorded scans in this period',
+              ),
+              const SizedBox(height: 12),
+              _buildDistribution(data),
+              const SizedBox(height: 24),
+              _sectionTitle(
+                'Detection Trends',
+                'Healthy and non-healthy results from actual scan dates',
+              ),
+              const SizedBox(height: 12),
+              _buildTrend(data),
+              const SizedBox(height: 24),
+              _sectionTitle(
+                'Recorded Scan Insights',
+                'Observations based only on saved scan results',
+              ),
+              const SizedBox(height: 12),
+              ...data.insights.map(_buildInsightCard),
+              if (data.hasData) ...[
+                const SizedBox(height: 14),
+                _sectionTitle('Recommended Actions', null),
+                const SizedBox(height: 12),
+                ...data.recommendations.map(_buildRecommendationCard),
+              ],
+            ]),
+          ),
+        ),
+      ],
     );
   }
 
   Widget _buildHeader() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 8, 16, 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      padding: const EdgeInsets.fromLTRB(6, 8, 10, 10),
+      child: Row(
         children: [
-          Row(
-            children: [
-              IconButton(
-                onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.arrow_back_ios_new_rounded),
-              ),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Scan Analytics',
-                      style: TextStyle(
-                        fontSize: 26,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF1B4332),
-                      ),
-                    ),
-                    Text(
-                      'Insights from your banana crop monitoring activities',
-                      style: TextStyle(color: AppColors.mutedText, fontSize: 13),
-                    ),
-                  ],
-                ),
-              ),
-              IconButton(
-                onPressed: _showFilterSheet,
-                icon: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFD0E9D4)),
-                  ),
-                  child: const Icon(Icons.tune_rounded, size: 20),
-                ),
-              ),
-            ],
+          IconButton(
+            tooltip: 'Back',
+            onPressed: () => Navigator.pop(context),
+            icon: const Icon(Icons.arrow_back_ios_new_rounded),
           ),
-          const SizedBox(height: 8),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Row(
-              children: AnalyticsPeriod.values.map((p) {
-                final active = _period == p;
-                return Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: FilterChip(
-                    label: Text(p.label),
-                    selected: active,
-                    onSelected: (_) {
-                      setState(() => _period = p);
-                      _anim.forward(from: 0);
-                    },
-                    selectedColor: AppColors.green.withValues(alpha: 0.15),
-                    checkmarkColor: AppColors.green,
-                    labelStyle: TextStyle(
-                      color: active ? AppColors.green : AppColors.mutedText,
-                      fontWeight: active ? FontWeight.w700 : FontWeight.w500,
-                    ),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Scan Analytics',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF183C24),
                   ),
-                );
-              }).toList(),
+                ),
+                Text(
+                  'A summary of your recorded banana leaf scans',
+                  maxLines: 2,
+                  style: TextStyle(
+                    color: AppColors.mutedText,
+                    fontSize: 12,
+                    height: 1.3,
+                  ),
+                ),
+              ],
             ),
+          ),
+          IconButton(
+            tooltip: 'Refresh analytics',
+            onPressed: _load,
+            icon: const Icon(Icons.refresh_rounded, color: AppColors.green),
           ),
         ],
       ),
     );
   }
 
-  void _showFilterSheet() {
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) => Padding(
-        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Filter Period',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
-            ),
-            const SizedBox(height: 16),
-            ...AnalyticsPeriod.values.map((p) {
-              return ListTile(
-                leading: Icon(
-                  _period == p
-                      ? Icons.radio_button_checked
-                      : Icons.radio_button_off,
-                  color: AppColors.green,
-                ),
-                title: Text(p.label),
-                onTap: () {
-                  setState(() => _period = p);
-                  _anim.forward(from: 0);
-                  Navigator.pop(ctx);
-                },
-              );
-            }),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSummaryGrid(ScanAnalyticsData data) {
-    final cards = [
-      ('Total Scans', '${data.totalScans}', Icons.qr_code_scanner_rounded),
-      ('Healthy', '${data.healthyCount}', Icons.eco_rounded),
-      ('Diseased', '${data.diseasedCount}', Icons.coronavirus_outlined),
-      (
-        'Top Disease',
-        data.mostCommonDisease == 'None' ? '—' : data.mostCommonDisease.split(' ').first,
-        Icons.analytics_outlined,
-      ),
-      (
-        'Avg Confidence',
-        '${data.avgConfidence.round()}%',
-        Icons.speed_rounded,
-      ),
-    ];
-
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        mainAxisSpacing: 12,
-        crossAxisSpacing: 12,
-        childAspectRatio: 1.45,
-      ),
-      itemCount: cards.length,
-      itemBuilder: (context, i) {
-        final c = cards[i];
-        return TweenAnimationBuilder<double>(
-          tween: Tween(begin: 0, end: 1),
-          duration: Duration(milliseconds: 400 + i * 80),
-          curve: Curves.easeOutCubic,
-          builder: (context, v, child) => Opacity(
-            opacity: v,
-            child: Transform.scale(scale: 0.92 + 0.08 * v, child: child),
-          ),
-          child: Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  blurRadius: 14,
-                  color: Colors.black.withValues(alpha: 0.05),
-                  offset: const Offset(0, 6),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(c.$3, color: AppColors.green, size: 22),
-                const Spacer(),
-                Text(
-                  c.$2,
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF222522),
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                Text(
-                  c.$1,
-                  style: const TextStyle(
-                    color: AppColors.mutedText,
-                    fontSize: 13,
-                  ),
-                ),
-              ],
-            ),
-          ),
+  Widget _buildPeriodSelector() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: _periods.map((period) {
+            final selected = period == _period;
+            return ChoiceChip(
+              label: Text(period.label),
+              selected: selected,
+              showCheckmark: false,
+              onSelected: (_) {
+                setState(() => _period = period);
+                _animation.forward(from: 0);
+              },
+              selectedColor: const Color(0xFFDCECDD),
+              backgroundColor: Colors.white,
+              side: BorderSide(
+                color: selected ? AppColors.green : const Color(0xFFDDE4DD),
+              ),
+              labelStyle: TextStyle(
+                color: selected ? AppColors.green : AppColors.mutedText,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+              ),
+            );
+          }).toList(),
         );
       },
     );
   }
 
-  Widget _buildHealthScore(ScanAnalyticsData data) {
-    final score = data.cropHealthScore;
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            AppColors.green,
-            AppColors.brightGreen.withValues(alpha: 0.85),
+  Widget _buildSummary(ScanAnalyticsData data) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final narrow = constraints.maxWidth < 340;
+        final halfWidth =
+            narrow ? constraints.maxWidth : (constraints.maxWidth - 12) / 2;
+        return Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: [
+            _SummaryCard(
+              width: halfWidth,
+              icon: Icons.document_scanner_outlined,
+              value: '${data.totalScans}',
+              label: 'Total Scans',
+            ),
+            _SummaryCard(
+              width: halfWidth,
+              icon: Icons.warning_amber_rounded,
+              value: '${data.diseasedCount}',
+              label: 'Disease Detections',
+              accent: const Color(0xFFB65A2B),
+            ),
+            _SummaryCard(
+              width: constraints.maxWidth,
+              icon: Icons.stacked_bar_chart_rounded,
+              value: _displayCategory(data.mostCommonDisease),
+              label: 'Most Detected Condition',
+              horizontal: true,
+            ),
           ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+        );
+      },
+    );
+  }
+
+  Widget _sectionTitle(String title, String? subtitle) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(
+            color: Color(0xFF202622),
+            fontSize: 20,
+            fontWeight: FontWeight.w800,
+          ),
         ),
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            blurRadius: 20,
-            color: AppColors.green.withValues(alpha: 0.3),
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 90,
-            height: 90,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                CircularProgressIndicator(
-                  value: score / 100,
-                  strokeWidth: 8,
-                  backgroundColor: Colors.white24,
-                  valueColor: const AlwaysStoppedAnimation(Colors.white),
-                ),
-                Text(
-                  '$score',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 28,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 18),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Crop Health Score',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  data.totalScans == 0
-                      ? 'Start scanning to generate your crop health score.'
-                      : 'Your monitored banana crops show ${score >= 70 ? "generally healthy" : "concerning"} conditions with ${data.diseasedCount > 0 ? "isolated disease occurrences requiring attention" : "strong wellness indicators"}.',
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    height: 1.4,
-                    fontSize: 13,
-                  ),
-                ),
-              ],
+        if (subtitle != null) ...[
+          const SizedBox(height: 3),
+          Text(
+            subtitle,
+            style: const TextStyle(
+              color: AppColors.mutedText,
+              fontSize: 12,
+              height: 1.35,
             ),
           ),
         ],
-      ),
+      ],
     );
   }
 
-  Widget _buildSectionTitle(String title) {
-    return Text(
-      title,
-      style: const TextStyle(
-        fontSize: 20,
-        fontWeight: FontWeight.w800,
-        color: Color(0xFF202422),
-      ),
-    );
-  }
-
-  Widget _buildBarChart(ScanAnalyticsData data) {
-    if (data.totalScans == 0) return _emptyCard('No scan data for this period.');
+  Widget _buildDistribution(ScanAnalyticsData data) {
+    if (!data.hasData) return _emptyCard();
 
     final entries = DiseaseLabels.categories
-        .map((c) => MapEntry(c, data.distribution[c] ?? 0))
-        .where((e) => e.value > 0)
+        .map((category) => MapEntry(category, data.distribution[category] ?? 0))
         .toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
+      ..sort((a, b) {
+        final countComparison = b.value.compareTo(a.value);
+        return countComparison != 0
+            ? countComparison
+            : DiseaseLabels.categories
+                .indexOf(a.key)
+                .compareTo(DiseaseLabels.categories.indexOf(b.key));
+      });
 
-    if (entries.isEmpty) {
-      entries.addAll(
-        DiseaseLabels.categories.map((c) => MapEntry(c, 0)),
-      );
-    }
-
-    final maxVal = entries.map((e) => e.value).fold(1, (a, b) => a > b ? a : b);
-    final topDisease = entries.isNotEmpty ? entries.first.key : '';
-
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        boxShadow: [
-          BoxShadow(
-            blurRadius: 14,
-            color: Colors.black.withValues(alpha: 0.05),
+    return _surface(
+      child: Column(
+        children: [
+          for (var i = 0; i < entries.length; i++) ...[
+            _DistributionRow(
+              category: entries[i].key,
+              count: entries[i].value,
+              total: data.totalScans,
+            ),
+            if (i != entries.length - 1) const SizedBox(height: 14),
+          ],
+          const SizedBox(height: 14),
+          const Divider(height: 1),
+          const SizedBox(height: 12),
+          const Text(
+            'Percentages describe recorded scans only and do not represent farm-wide disease prevalence.',
+            style: TextStyle(
+              color: AppColors.mutedText,
+              fontSize: 11,
+              height: 1.4,
+            ),
           ),
         ],
-      ),
-      child: Column(
-        children: entries.map((e) {
-          final pct = data.totalScans == 0
-              ? 0
-              : ((e.value / data.totalScans) * 100).round();
-          final isTop = e.key == topDisease && e.value > 0;
-          final color = DiseaseLabels.colorFor(e.key);
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        e.key,
-                        style: TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 13,
-                          color: isTop ? color : const Color(0xFF232625),
-                        ),
-                      ),
-                    ),
-                    Text(
-                      '$pct%',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w800,
-                        color: isTop ? color : AppColors.mutedText,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: TweenAnimationBuilder<double>(
-                    tween: Tween(begin: 0, end: e.value / maxVal),
-                    duration: const Duration(milliseconds: 700),
-                    curve: Curves.easeOutCubic,
-                    builder: (context, v, _) => LinearProgressIndicator(
-                      value: v,
-                      minHeight: isTop ? 12 : 10,
-                      backgroundColor: const Color(0xFFE8F5E9),
-                      valueColor: AlwaysStoppedAnimation(
-                        isTop
-                            ? color
-                            : color.withValues(alpha: 0.65),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          );
-        }).toList(),
       ),
     );
   }
 
-  Widget _buildLineChart(ScanAnalyticsData data) {
-    if (data.scans.length < 2) {
-      return _emptyCard('More scans needed to show disease trends.');
-    }
+  Widget _buildTrend(ScanAnalyticsData data) {
+    if (data.trend.isEmpty) return _emptyCard();
 
-    final byWeek = <int, int>{};
-    for (final s in data.scans.where((s) => !s.isHealthy)) {
-      final d = s.createdAt;
-      if (d == null) continue;
-      final w = d.day ~/ 7 + d.month * 4;
-      byWeek[w] = (byWeek[w] ?? 0) + 1;
-    }
+    final highest = data.trend.fold<int>(0, (current, point) {
+      return math.max(
+        current,
+        math.max(point.healthyCount, point.nonHealthyCount),
+      );
+    });
 
-    final spots = <FlSpot>[];
-    final keys = byWeek.keys.toList()..sort();
-    for (var i = 0; i < keys.length; i++) {
-      spots.add(FlSpot(i.toDouble(), (byWeek[keys[i]] ?? 0).toDouble()));
-    }
-    if (spots.isEmpty) {
-      spots.addAll([const FlSpot(0, 0), const FlSpot(1, 0)]);
-    }
-
-    return Container(
-      height: 220,
-      padding: const EdgeInsets.fromLTRB(12, 20, 16, 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        boxShadow: [
-          BoxShadow(
-            blurRadius: 14,
-            color: Colors.black.withValues(alpha: 0.05),
+    return _surface(
+      padding: const EdgeInsets.fromLTRB(12, 18, 12, 14),
+      child: Column(
+        children: [
+          const Wrap(
+            spacing: 18,
+            runSpacing: 8,
+            children: [
+              _Legend(color: AppColors.green, label: 'Healthy'),
+              _Legend(color: Color(0xFFB65A2B), label: 'Non-healthy'),
+            ],
+          ),
+          const SizedBox(height: 18),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final chartWidth = math.max(
+                constraints.maxWidth,
+                data.trend.length * 58.0,
+              );
+              return SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: SizedBox(
+                  width: chartWidth,
+                  height: 230,
+                  child: BarChart(
+                    BarChartData(
+                      minY: 0,
+                      maxY: math.max(1, highest).toDouble() + 1,
+                      alignment: BarChartAlignment.spaceAround,
+                      gridData: FlGridData(
+                        drawVerticalLine: false,
+                        horizontalInterval: 1,
+                        getDrawingHorizontalLine: (_) => const FlLine(
+                          color: Color(0xFFE8ECE8),
+                          strokeWidth: 1,
+                        ),
+                      ),
+                      borderData: FlBorderData(show: false),
+                      barTouchData: BarTouchData(enabled: true),
+                      titlesData: FlTitlesData(
+                        topTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
+                        rightTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
+                        leftTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            reservedSize: 28,
+                            interval: 1,
+                            getTitlesWidget: (value, _) => Text(
+                              value.toInt().toString(),
+                              style: const TextStyle(
+                                color: AppColors.mutedText,
+                                fontSize: 10,
+                              ),
+                            ),
+                          ),
+                        ),
+                        bottomTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            reservedSize: 34,
+                            getTitlesWidget: (value, meta) {
+                              if (value != value.roundToDouble()) {
+                                return const SizedBox.shrink();
+                              }
+                              final index = value.toInt();
+                              if (index < 0 || index >= data.trend.length) {
+                                return const SizedBox.shrink();
+                              }
+                              return SideTitleWidget(
+                                axisSide: meta.axisSide,
+                                space: 8,
+                                child: Text(
+                                  data.trend[index].label,
+                                  style: const TextStyle(
+                                    color: AppColors.mutedText,
+                                    fontSize: 10,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                      barGroups: List.generate(data.trend.length, (index) {
+                        final point = data.trend[index];
+                        return BarChartGroupData(
+                          x: index,
+                          barsSpace: 4,
+                          barRods: [
+                            BarChartRodData(
+                              toY: point.healthyCount.toDouble(),
+                              width: 10,
+                              color: AppColors.green,
+                              borderRadius: const BorderRadius.vertical(
+                                top: Radius.circular(4),
+                              ),
+                            ),
+                            BarChartRodData(
+                              toY: point.nonHealthyCount.toDouble(),
+                              width: 10,
+                              color: const Color(0xFFB65A2B),
+                              borderRadius: const BorderRadius.vertical(
+                                top: Radius.circular(4),
+                              ),
+                            ),
+                          ],
+                        );
+                      }),
+                    ),
+                    duration: const Duration(milliseconds: 500),
+                  ),
+                ),
+              );
+            },
           ),
         ],
-      ),
-      child: LineChart(
-        LineChartData(
-          gridData: FlGridData(
-            show: true,
-            drawVerticalLine: false,
-            horizontalInterval: 1,
-            getDrawingHorizontalLine: (v) => FlLine(
-              color: Colors.grey.shade200,
-              strokeWidth: 1,
-            ),
-          ),
-          titlesData: FlTitlesData(
-            leftTitles: AxisTitles(
-              sideTitles: SideTitles(
-                showTitles: true,
-                reservedSize: 28,
-                getTitlesWidget: (v, _) => Text(
-                  v.toInt().toString(),
-                  style: const TextStyle(fontSize: 11),
-                ),
-              ),
-            ),
-            bottomTitles: const AxisTitles(
-              sideTitles: SideTitles(showTitles: false),
-            ),
-            rightTitles: const AxisTitles(
-              sideTitles: SideTitles(showTitles: false),
-            ),
-            topTitles: const AxisTitles(
-              sideTitles: SideTitles(showTitles: false),
-            ),
-          ),
-          borderData: FlBorderData(show: false),
-          lineBarsData: [
-            LineChartBarData(
-              spots: spots,
-              isCurved: true,
-              color: AppColors.green,
-              barWidth: 3,
-              dotData: const FlDotData(show: true),
-              belowBarData: BarAreaData(
-                show: true,
-                gradient: LinearGradient(
-                  colors: [
-                    AppColors.brightGreen.withValues(alpha: 0.25),
-                    AppColors.brightGreen.withValues(alpha: 0.02),
-                  ],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                ),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -574,22 +469,22 @@ class _ScanAnalyticsScreenState extends State<ScanAnalyticsScreen>
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.85),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFD0E9D4)),
+        border: Border.all(color: const Color(0xFFDDE7DE)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.auto_awesome, color: AppColors.green, size: 20),
+          const Icon(Icons.insights_outlined, color: AppColors.green, size: 20),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               text,
-              style: TextStyle(
-                color: Colors.grey.shade800,
+              style: const TextStyle(
+                color: Color(0xFF414743),
+                fontSize: 13,
                 height: 1.45,
-                fontSize: 14,
               ),
             ),
           ),
@@ -598,12 +493,13 @@ class _ScanAnalyticsScreenState extends State<ScanAnalyticsScreen>
     );
   }
 
-  Widget _buildRecCard(({String title, String body, String iconKey}) rec) {
-    final icon = switch (rec.iconKey) {
+  Widget _buildRecommendationCard(
+    ({String title, String body, String iconKey}) recommendation,
+  ) {
+    final icon = switch (recommendation.iconKey) {
       'warning' => Icons.warning_amber_rounded,
       'scan' => Icons.document_scanner_outlined,
       'clean' => Icons.cleaning_services_outlined,
-      'water' => Icons.water_drop_outlined,
       _ => Icons.lightbulb_outline_rounded,
     };
     return Container(
@@ -612,35 +508,38 @@ class _ScanAnalyticsScreenState extends State<ScanAnalyticsScreen>
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFD0E9D4)),
+        border: Border.all(color: const Color(0xFFDDE7DE)),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: const EdgeInsets.all(10),
+            width: 42,
+            height: 42,
             decoration: BoxDecoration(
-              color: AppColors.green.withValues(alpha: 0.1),
+              color: const Color(0xFFEAF3EA),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(icon, color: AppColors.green),
+            child: Icon(icon, color: AppColors.green, size: 22),
           ),
-          const SizedBox(width: 14),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  rec.title,
+                  recommendation.title,
                   style: const TextStyle(
+                    color: Color(0xFF252A27),
                     fontWeight: FontWeight.w800,
-                    fontSize: 15,
+                    fontSize: 14,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  rec.body,
-                  style: TextStyle(
-                    color: Colors.grey.shade700,
+                  recommendation.body,
+                  style: const TextStyle(
+                    color: AppColors.mutedText,
                     fontSize: 13,
                     height: 1.4,
                   ),
@@ -653,43 +552,295 @@ class _ScanAnalyticsScreenState extends State<ScanAnalyticsScreen>
     );
   }
 
-  Widget _emptyCard(String msg) {
+  Widget _surface({
+    required Widget child,
+    EdgeInsetsGeometry padding = const EdgeInsets.all(18),
+  }) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(24),
+      padding: padding,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFD0E9D4)),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: const Color(0xFFDDE7DE)),
+        boxShadow: [
+          BoxShadow(
+            blurRadius: 14,
+            offset: const Offset(0, 6),
+            color: Colors.black.withValues(alpha: 0.04),
+          ),
+        ],
       ),
-      child: Column(
+      child: child,
+    );
+  }
+
+  Widget _emptyCard() {
+    return _surface(
+      child: const Column(
         children: [
-          Icon(Icons.insights_outlined, size: 40, color: Colors.grey.shade400),
-          const SizedBox(height: 10),
+          Icon(Icons.query_stats_rounded, color: Color(0xFF9AA39C), size: 36),
+          SizedBox(height: 10),
           Text(
-            msg,
+            'No scan data yet',
+            style: TextStyle(
+              color: Color(0xFF2D332F),
+              fontWeight: FontWeight.w800,
+              fontSize: 15,
+            ),
+          ),
+          SizedBox(height: 4),
+          Text(
+            'Scan banana leaves to start seeing trends.',
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey.shade600),
+            style: TextStyle(
+              color: AppColors.mutedText,
+              fontSize: 13,
+              height: 1.4,
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildSkeleton() {
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: List.generate(
-        5,
-        (i) => Container(
-          height: 80,
-          margin: const EdgeInsets.only(bottom: 12),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.6),
-            borderRadius: BorderRadius.circular(16),
-          ),
+  Widget _buildError() {
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.cloud_off_outlined,
+              size: 48,
+              color: AppColors.mutedText,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              _error!,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: AppColors.mutedText, height: 1.4),
+            ),
+            const SizedBox(height: 16),
+            FilledButton.icon(
+              onPressed: _load,
+              icon: const Icon(Icons.refresh_rounded),
+              label: const Text('Try Again'),
+            ),
+          ],
         ),
       ),
+    );
+  }
+
+  String _displayCategory(String? category) {
+    if (category == null) return '-';
+    return category == 'Insect Pest' ? 'Insect Pest Damage' : category;
+  }
+}
+
+class _SummaryCard extends StatelessWidget {
+  const _SummaryCard({
+    required this.width,
+    required this.icon,
+    required this.value,
+    required this.label,
+    this.accent = AppColors.green,
+    this.horizontal = false,
+  });
+
+  final double width;
+  final IconData icon;
+  final String value;
+  final String label;
+  final Color accent;
+  final bool horizontal;
+
+  @override
+  Widget build(BuildContext context) {
+    final valueText = Text(
+      value,
+      maxLines: horizontal ? 2 : 1,
+      overflow: TextOverflow.ellipsis,
+      style: const TextStyle(
+        color: Color(0xFF252A27),
+        fontSize: 20,
+        fontWeight: FontWeight.w800,
+        height: 1.15,
+      ),
+    );
+    final labelText = Text(
+      label,
+      maxLines: 2,
+      style: const TextStyle(
+        color: AppColors.mutedText,
+        fontSize: 12,
+        height: 1.25,
+      ),
+    );
+
+    return Container(
+      width: width,
+      constraints: const BoxConstraints(minHeight: 108),
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFDDE7DE)),
+      ),
+      child: horizontal
+          ? Row(
+              children: [
+                _SummaryIcon(icon: icon, color: accent),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [valueText, const SizedBox(height: 5), labelText],
+                  ),
+                ),
+              ],
+            )
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _SummaryIcon(icon: icon, color: accent),
+                const SizedBox(height: 12),
+                valueText,
+                const SizedBox(height: 3),
+                labelText,
+              ],
+            ),
+    );
+  }
+}
+
+class _SummaryIcon extends StatelessWidget {
+  const _SummaryIcon({required this.icon, required this.color});
+
+  final IconData icon;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 38,
+      height: 38,
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(11),
+      ),
+      child: Icon(icon, color: color, size: 21),
+    );
+  }
+}
+
+class _DistributionRow extends StatelessWidget {
+  const _DistributionRow({
+    required this.category,
+    required this.count,
+    required this.total,
+  });
+
+  final String category;
+  final int count;
+  final int total;
+
+  @override
+  Widget build(BuildContext context) {
+    final fraction = total == 0 ? 0.0 : count / total;
+    final percentage = (fraction * 100).round();
+    final color = DiseaseLabels.colorFor(category);
+    final label = category == 'Insect Pest' ? 'Insect Pest Damage' : category;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            DiseaseDistributionIcon(
+              category: category,
+              color: color,
+              size: 18,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Color(0xFF303632),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              '$count  |  $percentage%',
+              style: const TextStyle(
+                color: AppColors.mutedText,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 7),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(5),
+          child: SizedBox(
+            height: 8,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                const ColoredBox(color: Color(0xFFEDF1ED)),
+                FractionallySizedBox(
+                  alignment: Alignment.centerLeft,
+                  widthFactor: fraction,
+                  child: ColoredBox(color: color),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _Legend extends StatelessWidget {
+  const _Legend({required this.color, required this.label});
+
+  final Color color;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(3),
+          ),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: const TextStyle(
+            color: AppColors.mutedText,
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
     );
   }
 }

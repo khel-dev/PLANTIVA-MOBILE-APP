@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_plantiva/config/app_colors.dart';
 import 'package:flutter_plantiva/services/profile_service.dart';
 import 'package:flutter_plantiva/utils/plantiva_feedback.dart';
+import 'package:flutter_plantiva/widgets/plantiva_decorated_background.dart';
 
 class NotificationSettingsScreen extends StatefulWidget {
   const NotificationSettingsScreen({super.key});
@@ -66,7 +67,7 @@ class _NotificationSettingsScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFE7F5E9),
+      backgroundColor: const Color(0xFFF7F6F1),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -76,49 +77,51 @@ class _NotificationSettingsScreenState
           style: TextStyle(fontWeight: FontWeight.w800),
         ),
       ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                _toggle(
-                  'In-app Alerts',
-                  'Show PLANTIVA alerts inside the app',
-                  _push,
-                  (v) {
-                    setState(() => _push = v);
-                    _persist();
-                  },
-                ),
-                _toggle(
-                  'Disease Alerts',
-                  'Notify when diseases are detected',
-                  _disease,
-                  (v) {
-                    setState(() => _disease = v);
-                    _persist();
-                  },
-                ),
-                _toggle(
-                  'Weekly Plant Health Reports',
-                  'Summary of your crop monitoring',
-                  _weekly,
-                  (v) {
-                    setState(() => _weekly = v);
-                    _persist();
-                  },
-                ),
-                _toggle(
-                  'Educational Tips',
-                  'Farming tips and best practices',
-                  _tips,
-                  (v) {
-                    setState(() => _tips = v);
-                    _persist();
-                  },
-                ),
-              ],
-            ),
+      body: PlantivaDecoratedBackground(
+        child: _loading
+            ? const Center(child: CircularProgressIndicator())
+            : ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  _toggle(
+                    'In-app Alerts',
+                    'Show PLANTIVA alerts inside the app',
+                    _push,
+                    (v) {
+                      setState(() => _push = v);
+                      _persist();
+                    },
+                  ),
+                  _toggle(
+                    'Disease Alerts',
+                    'Notify when diseases are detected',
+                    _disease,
+                    (v) {
+                      setState(() => _disease = v);
+                      _persist();
+                    },
+                  ),
+                  _toggle(
+                    'Weekly Plant Health Reports',
+                    'Summary of your crop monitoring',
+                    _weekly,
+                    (v) {
+                      setState(() => _weekly = v);
+                      _persist();
+                    },
+                  ),
+                  _toggle(
+                    'Educational Tips',
+                    'Farming tips and best practices',
+                    _tips,
+                    (v) {
+                      setState(() => _tips = v);
+                      _persist();
+                    },
+                  ),
+                ],
+              ),
+      ),
     );
   }
 

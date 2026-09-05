@@ -1,13 +1,20 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:flutter_plantiva/config/app_colors.dart';
+import 'package:flutter_plantiva/services/classifier_service.dart';
+import 'package:flutter_plantiva/services/input_validator_service.dart';
 import 'package:flutter_plantiva/utils/plantiva_feedback.dart';
-import '../services/classifier_service.dart';
+import 'package:image_picker/image_picker.dart';
+
 import 'scan_loading_screen.dart';
 
 enum _ModelPhase { loading, ready, error }
+
+const _scannerBackground = Color(0xFFF5F7F2);
+const _scannerInk = Color(0xFF173722);
+const _scannerMuted = Color(0xFF68736B);
+const _scannerBorder = Color(0xFFDDE7DC);
+const _scannerSoftGreen = Color(0xFFE8F2E7);
 
 class ScannerScreen extends StatefulWidget {
   const ScannerScreen({super.key});
@@ -19,13 +26,14 @@ class ScannerScreen extends StatefulWidget {
 class _ScannerScreenState extends State<ScannerScreen>
     with TickerProviderStateMixin {
   final ClassifierService _classifier = ClassifierService();
+  final InputValidatorService _inputValidator = InputValidatorService();
   late final AnimationController _pulse;
   late final AnimationController _sweep;
   late final Animation<double> _pulseAnim;
   late final Animation<double> _sweepAnim;
 
   _ModelPhase _phase = _ModelPhase.loading;
-  final bool _inferencing = false;
+  bool _inferencing = false;
 
   @override
   void initState() {
@@ -44,14 +52,17 @@ class _ScannerScreenState extends State<ScannerScreen>
   }
 
   Future<void> _bootstrapModel() async {
-    setState(() => _phase = _ModelPhase.loading);
-    await _classifier.loadModel();
+    if (mounted) setState(() => _phase = _ModelPhase.loading);
+    await Future.wait([
+      _classifier.loadModel(),
+      _inputValidator.loadModel(),
+    ]);
     if (!mounted) return;
-    if (_classifier.isReady) {
-      setState(() => _phase = _ModelPhase.ready);
-    } else {
-      setState(() => _phase = _ModelPhase.error);
-    }
+    setState(() {
+      _phase = _classifier.isReady && _inputValidator.isReady
+          ? _ModelPhase.ready
+          : _ModelPhase.error;
+    });
   }
 
   Future<void> _pickImage(ImageSource source) async {
@@ -59,46 +70,57 @@ class _ScannerScreenState extends State<ScannerScreen>
       PlantivaFeedback.show(
         context,
         message: _phase == _ModelPhase.loading
-            ? 'AI model is still loading...'
-            : 'Fix the model issue before scanning.',
+            ? 'The scanner is still getting ready.'
+            : 'The scanner is unavailable. Please try again.',
         type: PlantivaFeedbackType.warning,
       );
       return;
     }
+    if (_inferencing) return;
 
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(
-      source: source,
-      maxWidth: 1920,
-      imageQuality: 88,
-    );
+    setState(() => _inferencing = true);
+    String? retrySource;
+    try {
+      final pickedFile = await ImagePicker().pickImage(
+        source: source,
+        maxWidth: 1920,
+        imageQuality: 88,
+      );
+      if (pickedFile == null || !mounted) return;
 
-    if (pickedFile == null || !mounted) return;
-
-    HapticFeedback.lightImpact();
-    await Navigator.push<void>(
-      context,
-      PageRouteBuilder<void>(
-        pageBuilder: (_, __, ___) => ScanLoadingScreen(
-          imagePath: pickedFile.path,
-          classifier: _classifier,
+      HapticFeedback.lightImpact();
+      retrySource = await Navigator.push<String?>(
+        context,
+        PageRouteBuilder<String?>(
+          pageBuilder: (_, __, ___) => ScanLoadingScreen(
+            imagePath: pickedFile.path,
+            classifier: _classifier,
+            inputValidator: _inputValidator,
+          ),
+          transitionsBuilder: (_, animation, __, child) {
+            return FadeTransition(
+              opacity: CurvedAnimation(
+                parent: animation,
+                curve: Curves.easeOutCubic,
+              ),
+              child: SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(0, 0.04),
+                  end: Offset.zero,
+                ).animate(animation),
+                child: child,
+              ),
+            );
+          },
         ),
-        transitionsBuilder: (_, animation, __, child) {
-          return FadeTransition(
-            opacity: CurvedAnimation(
-              parent: animation,
-              curve: Curves.easeOutCubic,
-            ),
-            child: SlideTransition(
-              position: Tween<Offset>(
-                begin: const Offset(0, 0.04),
-                end: Offset.zero,
-              ).animate(animation),
-              child: child,
-            ),
-          );
-        },
-      ),
+      );
+    } finally {
+      if (mounted) setState(() => _inferencing = false);
+    }
+
+    if (!mounted || retrySource == null) return;
+    await _pickImage(
+      retrySource == 'camera' ? ImageSource.camera : ImageSource.gallery,
     );
   }
 
@@ -107,105 +129,60 @@ class _ScannerScreenState extends State<ScannerScreen>
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => DraggableScrollableSheet(
-        initialChildSize: 0.52,
-        minChildSize: 0.38,
-        maxChildSize: 0.92,
-        builder: (_, scroll) => _GlassSheet(
-          child: ListView(
-            controller: scroll,
-            padding: const EdgeInsets.fromLTRB(22, 8, 22, 28),
-            children: const [
-              _SheetTitle('Capture tips', Icons.tips_and_updates_outlined),
-              SizedBox(height: 14),
-              _TipRow(
-                icon: Icons.wb_sunny_outlined,
-                text:
-                    'Use natural daylight or soft white light. Avoid harsh shadows on the leaf.',
-              ),
-              _TipRow(
-                icon: Icons.center_focus_strong,
-                text:
-                    'Fill the frame with one leaf. Focus on spots, streaks, or yellowing.',
-              ),
-              _TipRow(
-                icon: Icons.blur_off,
-                text: 'Hold steady — blur confuses the model.',
-              ),
-              _TipRow(
-                icon: Icons.collections_outlined,
-                text:
-                    'On emulator, use Gallery with a clear banana-leaf photo if camera is unavailable.',
-              ),
-            ],
-          ),
+      builder: (_) => const _ScannerSheet(
+        icon: Icons.tips_and_updates_outlined,
+        title: 'Photo tips',
+        subtitle: 'A clear image helps Plantiva give a more reliable result.',
+        child: Column(
+          children: [
+            _TipRow(
+              icon: Icons.wb_sunny_outlined,
+              title: 'Use good lighting',
+              text: 'Use daylight when possible and avoid strong glare.',
+            ),
+            _TipRow(
+              icon: Icons.center_focus_strong_rounded,
+              title: 'Keep the leaf in focus',
+              text: 'Hold the phone steady and wait for a clear image.',
+            ),
+            _TipRow(
+              icon: Icons.eco_outlined,
+              title: 'Show one banana leaf',
+              text: 'Keep the leaf clearly visible inside the frame.',
+            ),
+          ],
         ),
       ),
     );
   }
 
-  void _showModelSheet() {
+  void _showSupportedConditionsSheet() {
     showModalBottomSheet<void>(
       context: context,
+      isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => _GlassSheet(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(22, 8, 22, 28),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const _SheetTitle('On-device AI', Icons.psychology_outlined),
-              const SizedBox(height: 10),
-              Text(
-                _phase == _ModelPhase.ready
-                    ? 'TensorFlow Lite model is loaded on this phone — no internet required for diagnosis.'
-                    : _classifier.loadError ??
-                        'Model could not be loaded. Check assets/models.',
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.88),
-                  height: 1.45,
-                  fontSize: 14,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Classes (${_classifier.classCount})',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 15,
-                ),
-              ),
-              const SizedBox(height: 8),
-              ..._kBananaClasses.map(
-                (c) => Padding(
-                  padding: const EdgeInsets.only(bottom: 6),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Icon(
-                        Icons.check_circle_outline,
-                        size: 18,
-                        color: AppColors.brightGreen.withValues(alpha: 0.9),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          c,
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.85),
-                            fontSize: 13.5,
-                            height: 1.35,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
+      builder: (_) => _ScannerSheet(
+        icon: Icons.fact_check_outlined,
+        title: 'Supported conditions',
+        subtitle: 'Plantiva can check clear banana leaf images for:',
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final itemWidth = constraints.maxWidth < 340
+                ? constraints.maxWidth
+                : (constraints.maxWidth - 12) / 2;
+            return Wrap(
+              spacing: 12,
+              runSpacing: 10,
+              children: _kBananaClasses
+                  .map(
+                    (condition) => SizedBox(
+                      width: itemWidth,
+                      child: _ConditionItem(label: condition),
+                    ),
+                  )
+                  .toList(),
+            );
+          },
         ),
       ),
     );
@@ -214,10 +191,11 @@ class _ScannerScreenState extends State<ScannerScreen>
   static const _kBananaClasses = <String>[
     'Black Sigatoka',
     'Bract Mosaic Virus',
-    'Healthy leaf',
-    'Insect pest damage',
-    'Moko disease',
-    'Panama disease',
+    'Bunchy Top Disease',
+    'Healthy Leaf',
+    'Insect Pest Damage',
+    'Moko Disease',
+    'Panama Disease',
     'Yellow Sigatoka',
   ];
 
@@ -226,524 +204,334 @@ class _ScannerScreenState extends State<ScannerScreen>
     _pulse.dispose();
     _sweep.dispose();
     _classifier.close();
+    _inputValidator.close();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF061208),
-      extendBodyBehindAppBar: true,
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          // Ambient mesh gradient
-          DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: RadialGradient(
-                center: const Alignment(-0.6, -0.85),
-                radius: 1.15,
-                colors: [
-                  AppColors.green.withValues(alpha: 0.45),
-                  const Color(0xFF061208),
-                ],
+      backgroundColor: _scannerBackground,
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final horizontalPadding = constraints.maxWidth < 360 ? 16.0 : 20.0;
+            final compact = constraints.maxHeight < 680;
+            return SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(
+                horizontalPadding,
+                compact ? 10 : 16,
+                horizontalPadding,
+                24,
               ),
-            ),
-          ),
-          DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: RadialGradient(
-                center: const Alignment(0.9, 0.35),
-                radius: 1.0,
-                colors: [
-                  AppColors.brightGreen.withValues(alpha: 0.12),
-                  Colors.transparent,
-                ],
-              ),
-            ),
-          ),
-
-          SafeArea(
-            child: Column(
-              children: [
-                Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  child: Row(
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 560),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      IconButton.filledTonal(
-                        style: IconButton.styleFrom(
-                          backgroundColor: Colors.white.withValues(alpha: 0.12),
-                        ),
-                        onPressed: () => Navigator.pop(context),
-                        icon: const Icon(Icons.close_rounded,
-                            color: Colors.white),
+                      _ScannerHeader(
+                        onBack: () => Navigator.pop(context),
+                        onInfo: _showSupportedConditionsSheet,
                       ),
-                      const Spacer(),
-                      Column(
-                        children: [
-                          const Text(
-                            'PLANTIVA',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 15,
-                              letterSpacing: 3,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          _StatusChip(phase: _phase),
-                        ],
-                      ),
-                      const Spacer(),
-                      IconButton.filledTonal(
-                        style: IconButton.styleFrom(
-                          backgroundColor: Colors.white.withValues(alpha: 0.12),
-                        ),
-                        onPressed: _showModelSheet,
-                        icon: const Icon(Icons.info_outline_rounded,
-                            color: Colors.white),
-                      ),
-                    ],
-                  ),
-                ),
-                Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(20),
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 12),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.08),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.12),
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.offline_bolt_rounded,
-                              color:
-                                  AppColors.brightGreen.withValues(alpha: 0.95),
-                              size: 22,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                _phase == _ModelPhase.ready
-                                    ? 'Offline TFLite — same 224×224 pipeline as your Python trainer.'
-                                    : _phase == _ModelPhase.loading
-                                        ? 'Loading banana leaf model…'
-                                        : 'Model error — tap retry or copy .tflite into assets.',
-                                style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.9),
-                                  fontSize: 13,
-                                  height: 1.35,
-                                ),
-                              ),
-                            ),
-                            if (_phase == _ModelPhase.error)
-                              TextButton(
-                                onPressed: _bootstrapModel,
-                                child: const Text('Retry'),
-                              ),
-                          ],
+                      SizedBox(height: compact ? 18 : 24),
+                      AnimatedBuilder(
+                        animation: Listenable.merge([_pulseAnim, _sweepAnim]),
+                        builder: (_, __) => _ScannerPreview(
+                          phase: _phase,
+                          pulse: _pulseAnim.value,
+                          sweep: _sweepAnim.value,
+                          compact: compact,
+                          onRetry: _bootstrapModel,
                         ),
                       ),
-                    ),
-                  ),
-                ),
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(22, 12, 22, 8),
-                    child: AnimatedBuilder(
-                      animation: Listenable.merge([_pulseAnim, _sweepAnim]),
-                      builder: (context, _) {
-                        final glow = 0.35 + 0.35 * _pulseAnim.value;
-                        return Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(28),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppColors.brightGreen
-                                    .withValues(alpha: 0.15 * glow),
-                                blurRadius: 28,
-                                spreadRadius: 2,
-                              ),
-                            ],
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(28),
-                            child: Stack(
-                              fit: StackFit.expand,
-                              children: [
-                                Container(
-                                  decoration: BoxDecoration(
-                                    border: Border.all(
-                                      color: AppColors.brightGreen.withValues(
-                                          alpha:
-                                              0.25 + 0.35 * _pulseAnim.value),
-                                      width: 2,
-                                    ),
-                                    borderRadius: BorderRadius.circular(28),
-                                  ),
-                                ),
-                                Container(
-                                  color: Colors.black.withValues(alpha: 0.35),
-                                ),
-                                // Sweep line
-                                LayoutBuilder(
-                                  builder: (context, c) {
-                                    final y = 24 +
-                                        (c.maxHeight - 48) * _sweepAnim.value;
-                                    return Positioned(
-                                      top: y.clamp(12.0, c.maxHeight - 24),
-                                      left: 18,
-                                      right: 18,
-                                      child: Container(
-                                        height: 2,
-                                        decoration: BoxDecoration(
-                                          borderRadius:
-                                              BorderRadius.circular(2),
-                                          gradient: LinearGradient(
-                                            colors: [
-                                              Colors.transparent,
-                                              AppColors.brightGreen
-                                                  .withValues(alpha: 0.9),
-                                              Colors.transparent,
-                                            ],
-                                          ),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: AppColors.brightGreen
-                                                  .withValues(alpha: 0.6),
-                                              blurRadius: 12,
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                ),
-                                Center(
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(
-                                        Icons.eco_rounded,
-                                        size: 56,
-                                        color: Colors.white
-                                            .withValues(alpha: 0.25),
-                                      ),
-                                      const SizedBox(height: 12),
-                                      Text(
-                                        _inferencing
-                                            ? 'Analyzing leaf…'
-                                            : 'Ready to scan',
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.w700,
-                                          fontSize: 18,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 6),
-                                      Text(
-                                        'Banana leaf diseases',
-                                        style: TextStyle(
-                                          color: Colors.white
-                                              .withValues(alpha: 0.55),
-                                          fontSize: 13,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                if (_inferencing)
-                                  const Center(
-                                    child: SizedBox(
-                                      width: 52,
-                                      height: 52,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 3,
-                                        color: AppColors.brightGreen,
-                                      ),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 28, vertical: 8),
-                  child: Text(
-                    'Capture one clear leaf — the AI matches it to your trained classes.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.72),
-                      fontSize: 14,
-                      height: 1.4,
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 28),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      _RoundAction(
-                        icon: Icons.photo_library_rounded,
-                        label: 'Gallery',
-                        enabled: !_inferencing,
-                        onTap: () => _pickImage(ImageSource.gallery),
-                      ),
-                      _ShutterButton(
+                      SizedBox(height: compact ? 14 : 18),
+                      const _GuidanceCard(),
+                      SizedBox(height: compact ? 16 : 22),
+                      _ScannerActions(
                         enabled: _phase == _ModelPhase.ready && !_inferencing,
-                        onTap: () => _pickImage(ImageSource.camera),
+                        busy: _inferencing,
+                        onCamera: () => _pickImage(ImageSource.camera),
+                        onGallery: () => _pickImage(ImageSource.gallery),
                       ),
-                      _RoundAction(
-                        icon: Icons.lightbulb_outline_rounded,
-                        label: 'Tips',
-                        enabled: !_inferencing,
-                        onTap: _showTipsSheet,
+                      const SizedBox(height: 8),
+                      TextButton.icon(
+                        onPressed: _inferencing ? null : _showTipsSheet,
+                        icon: const Icon(Icons.lightbulb_outline_rounded),
+                        label: const Text('View photo tips'),
+                        style: TextButton.styleFrom(
+                          foregroundColor: AppColors.green,
+                          minimumSize: const Size.fromHeight(48),
+                        ),
                       ),
                     ],
                   ),
                 ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _StatusChip extends StatelessWidget {
-  const _StatusChip({required this.phase});
-
-  final _ModelPhase phase;
-
-  @override
-  Widget build(BuildContext context) {
-    late final String text;
-    late final Color bg;
-    late final Color fg;
-    switch (phase) {
-      case _ModelPhase.loading:
-        text = 'LOADING MODEL';
-        bg = Colors.amber.withValues(alpha: 0.2);
-        fg = Colors.amberAccent;
-      case _ModelPhase.ready:
-        text = 'ON-DEVICE AI READY';
-        bg = AppColors.brightGreen.withValues(alpha: 0.2);
-        fg = AppColors.brightGreen;
-      case _ModelPhase.error:
-        text = 'MODEL ISSUE';
-        bg = Colors.red.withValues(alpha: 0.2);
-        fg = Colors.redAccent;
-    }
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (phase == _ModelPhase.loading)
-            const SizedBox(
-              width: 12,
-              height: 12,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: Colors.amberAccent,
               ),
-            )
-          else
-            Icon(
-              phase == _ModelPhase.ready
-                  ? Icons.verified_rounded
-                  : Icons.error_outline,
-              size: 14,
-              color: fg,
-            ),
-          const SizedBox(width: 6),
-          Text(
-            text,
-            style: TextStyle(
-              color: fg,
-              fontSize: 10,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.8,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _RoundAction extends StatelessWidget {
-  const _RoundAction({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-    required this.enabled,
-  });
-
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-  final bool enabled;
-
-  @override
-  Widget build(BuildContext context) {
-    return Opacity(
-      opacity: enabled ? 1 : 0.45,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: enabled ? onTap : null,
-          borderRadius: BorderRadius.circular(20),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-            child: Column(
-              children: [
-                Container(
-                  width: 58,
-                  height: 58,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.white.withValues(alpha: 0.1),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.18),
-                    ),
-                  ),
-                  child: Icon(icon, color: Colors.white, size: 26),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  label,
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.85),
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-              ],
-            ),
-          ),
+            );
+          },
         ),
       ),
     );
   }
 }
 
-class _ShutterButton extends StatelessWidget {
-  const _ShutterButton({required this.onTap, required this.enabled});
+class _ScannerHeader extends StatelessWidget {
+  const _ScannerHeader({required this.onBack, required this.onInfo});
 
-  final VoidCallback onTap;
-  final bool enabled;
-
-  @override
-  Widget build(BuildContext context) {
-    return Opacity(
-      opacity: enabled ? 1 : 0.45,
-      child: GestureDetector(
-        onTap: enabled ? onTap : null,
-        child: Container(
-          width: 86,
-          height: 86,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                AppColors.brightGreen.withValues(alpha: 0.35),
-                AppColors.green.withValues(alpha: 0.9),
-              ],
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.brightGreen.withValues(alpha: 0.35),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
-              ),
-            ],
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.35),
-              width: 3,
-            ),
-          ),
-          child: const Icon(
-            Icons.photo_camera_rounded,
-            color: Colors.white,
-            size: 38,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _GlassSheet extends StatelessWidget {
-  const _GlassSheet({required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-        child: Container(
-          width: double.infinity,
-          decoration: BoxDecoration(
-            color: const Color(0xFF0D1A12).withValues(alpha: 0.92),
-            border: Border(
-              top: BorderSide(color: Colors.white.withValues(alpha: 0.14)),
-            ),
-          ),
-          child: child,
-        ),
-      ),
-    );
-  }
-}
-
-class _SheetTitle extends StatelessWidget {
-  const _SheetTitle(this.title, this.icon);
-
-  final String title;
-  final IconData icon;
+  final VoidCallback onBack;
+  final VoidCallback onInfo;
 
   @override
   Widget build(BuildContext context) {
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, color: AppColors.brightGreen, size: 26),
-        const SizedBox(width: 10),
+        IconButton(
+          tooltip: 'Back',
+          onPressed: onBack,
+          style: IconButton.styleFrom(
+            backgroundColor: Colors.white,
+            foregroundColor: _scannerInk,
+            minimumSize: const Size(48, 48),
+            side: const BorderSide(color: _scannerBorder),
+          ),
+          icon: const Icon(Icons.arrow_back_rounded),
+        ),
+        const SizedBox(width: 12),
+        const Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Scan Banana Leaf',
+                maxLines: 2,
+                style: TextStyle(
+                  color: _scannerInk,
+                  fontSize: 23,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              SizedBox(height: 4),
+              Text(
+                'Capture or upload a clear banana leaf for analysis.',
+                style: TextStyle(
+                  color: _scannerMuted,
+                  fontSize: 13,
+                  height: 1.35,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 8),
+        IconButton(
+          tooltip: 'Supported conditions',
+          onPressed: onInfo,
+          style: IconButton.styleFrom(
+            backgroundColor: _scannerSoftGreen,
+            foregroundColor: AppColors.green,
+            minimumSize: const Size(48, 48),
+          ),
+          icon: const Icon(Icons.info_outline_rounded),
+        ),
+      ],
+    );
+  }
+}
+
+class _ScannerPreview extends StatelessWidget {
+  const _ScannerPreview({
+    required this.phase,
+    required this.pulse,
+    required this.sweep,
+    required this.compact,
+    required this.onRetry,
+  });
+
+  final _ModelPhase phase;
+  final double pulse;
+  final double sweep;
+  final bool compact;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return AspectRatio(
+      aspectRatio: compact ? 1.22 : 1.10,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: const Color(0xFFEDF3E9),
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(color: _scannerBorder),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF234C2F).withValues(alpha: 0.08),
+              blurRadius: 22,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(27),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Positioned(
+                right: -42,
+                bottom: -56,
+                width: compact ? 190 : 240,
+                child: Opacity(
+                  opacity: 0.13,
+                  child: Image.asset('assets/images/banana-leaf.png'),
+                ),
+              ),
+              Padding(
+                padding: EdgeInsets.all(compact ? 24 : 30),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.42),
+                    borderRadius: BorderRadius.circular(22),
+                    border: Border.all(
+                      color: AppColors.green.withValues(alpha: 0.22),
+                    ),
+                  ),
+                ),
+              ),
+              Center(
+                child: Icon(
+                  Icons.crop_free_rounded,
+                  size: compact ? 150 : 188,
+                  color: AppColors.green.withValues(alpha: 0.20),
+                ),
+              ),
+              if (phase == _ModelPhase.ready)
+                Align(
+                  alignment: Alignment(0, -0.84 + (1.68 * sweep)),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 38),
+                    child: Container(
+                      height: 2,
+                      color: AppColors.green.withValues(alpha: 0.20),
+                    ),
+                  ),
+                ),
+              Center(
+                child: _PreviewState(
+                  phase: phase,
+                  pulse: pulse,
+                  onRetry: onRetry,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PreviewState extends StatelessWidget {
+  const _PreviewState({
+    required this.phase,
+    required this.pulse,
+    required this.onRetry,
+  });
+
+  final _ModelPhase phase;
+  final double pulse;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    if (phase == _ModelPhase.error) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 50),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.error_outline_rounded,
+              color: Color(0xFFB45309),
+              size: 36,
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              'Scanner could not start',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: _scannerInk,
+                fontWeight: FontWeight.w800,
+                fontSize: 17,
+              ),
+            ),
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh_rounded),
+              label: const Text('Retry'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 64,
+          height: 64,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.88),
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.green.withValues(
+                  alpha: phase == _ModelPhase.loading
+                      ? 0.08 + (pulse * 0.08)
+                      : 0.08,
+                ),
+                blurRadius: 18,
+              ),
+            ],
+          ),
+          child: phase == _ModelPhase.loading
+              ? const Padding(
+                  padding: EdgeInsets.all(20),
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    color: AppColors.green,
+                  ),
+                )
+              : const Icon(
+                  Icons.photo_camera_outlined,
+                  color: AppColors.green,
+                  size: 30,
+                ),
+        ),
+        const SizedBox(height: 14),
         Text(
-          title,
+          phase == _ModelPhase.loading
+              ? 'Preparing scanner...'
+              : 'Keep the leaf clearly visible',
+          textAlign: TextAlign.center,
           style: const TextStyle(
-            color: Colors.white,
-            fontSize: 20,
+            color: _scannerInk,
             fontWeight: FontWeight.w800,
+            fontSize: 17,
+          ),
+        ),
+        const SizedBox(height: 5),
+        Text(
+          phase == _ModelPhase.loading
+              ? 'This will only take a moment.'
+              : 'Place one banana leaf inside the frame.',
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            color: _scannerMuted,
+            fontSize: 13,
+            height: 1.35,
           ),
         ),
       ],
@@ -751,28 +539,327 @@ class _SheetTitle extends StatelessWidget {
   }
 }
 
-class _TipRow extends StatelessWidget {
-  const _TipRow({required this.icon, required this.text});
+class _GuidanceCard extends StatelessWidget {
+  const _GuidanceCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: _scannerBorder),
+      ),
+      child: const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'For a clearer scan',
+            style: TextStyle(
+              color: _scannerInk,
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _GuidanceItem(
+                  icon: Icons.wb_sunny_outlined,
+                  label: 'Good lighting',
+                ),
+              ),
+              Expanded(
+                child: _GuidanceItem(
+                  icon: Icons.center_focus_strong_rounded,
+                  label: 'Clear focus',
+                ),
+              ),
+              Expanded(
+                child: _GuidanceItem(
+                  icon: Icons.eco_outlined,
+                  label: 'Leaf in frame',
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GuidanceItem extends StatelessWidget {
+  const _GuidanceItem({required this.icon, required this.label});
 
   final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Icon(icon, size: 22, color: AppColors.green),
+        const SizedBox(height: 6),
+        Text(
+          label,
+          textAlign: TextAlign.center,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            color: _scannerMuted,
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            height: 1.2,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ScannerActions extends StatelessWidget {
+  const _ScannerActions({
+    required this.enabled,
+    required this.busy,
+    required this.onCamera,
+    required this.onGallery,
+  });
+
+  final bool enabled;
+  final bool busy;
+  final VoidCallback onCamera;
+  final VoidCallback onGallery;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        FilledButton.icon(
+          onPressed: enabled ? onCamera : null,
+          icon: busy
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.2,
+                    color: Colors.white,
+                  ),
+                )
+              : const Icon(Icons.photo_camera_rounded),
+          label: Text(busy ? 'Opening camera...' : 'Capture Leaf'),
+          style: FilledButton.styleFrom(
+            minimumSize: const Size.fromHeight(56),
+            backgroundColor: AppColors.green,
+            foregroundColor: Colors.white,
+            disabledBackgroundColor: const Color(0xFFC7D4C8),
+            textStyle: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        OutlinedButton.icon(
+          onPressed: enabled ? onGallery : null,
+          icon: const Icon(Icons.photo_library_outlined),
+          label: const Text('Choose from Gallery'),
+          style: OutlinedButton.styleFrom(
+            minimumSize: const Size.fromHeight(54),
+            foregroundColor: AppColors.green,
+            side: const BorderSide(color: Color(0xFFB8CCB9)),
+            textStyle: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ScannerSheet extends StatelessWidget {
+  const _ScannerSheet({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.child,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      top: false,
+      child: Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(context).height * 0.82,
+        ),
+        decoration: const BoxDecoration(
+          color: Color(0xFFFCFDFB),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 44,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFD6DED6),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: _scannerSoftGreen,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Icon(icon, color: AppColors.green),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: const TextStyle(
+                        color: _scannerInk,
+                        fontSize: 21,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Text(
+                subtitle,
+                style: const TextStyle(
+                  color: _scannerMuted,
+                  height: 1.45,
+                  fontSize: 14,
+                ),
+              ),
+              const SizedBox(height: 18),
+              child,
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TipRow extends StatelessWidget {
+  const _TipRow({
+    required this.icon,
+    required this.title,
+    required this.text,
+  });
+
+  final IconData icon;
+  final String title;
   final String text;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: _scannerBorder),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, color: AppColors.green, size: 23),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: _scannerInk,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    text,
+                    style: const TextStyle(
+                      color: _scannerMuted,
+                      height: 1.4,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ConditionItem extends StatelessWidget {
+  const _ConditionItem({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: const BoxConstraints(minHeight: 58),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: _scannerBorder),
+      ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: AppColors.brightGreen, size: 22),
-          const SizedBox(width: 12),
+          const Icon(
+            Icons.check_circle_outline_rounded,
+            color: AppColors.green,
+            size: 20,
+          ),
+          const SizedBox(width: 9),
           Expanded(
             child: Text(
-              text,
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.88),
-                height: 1.45,
-                fontSize: 14,
+              label,
+              style: const TextStyle(
+                color: _scannerInk,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                height: 1.25,
               ),
             ),
           ),
