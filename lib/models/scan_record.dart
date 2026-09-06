@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_plantiva/data/treatment_guidance_data.dart';
 import 'package:flutter_plantiva/utils/disease_labels.dart';
 import 'package:flutter_plantiva/utils/scan_diagnosis_helper.dart';
 
@@ -39,11 +40,10 @@ class ScanRecord {
 
   double get confidenceValue => ScanDiagnosisHelper.parseConfidence(confidence);
 
-  String get effectiveSummary =>
-      summary ?? ScanDiagnosisHelper.aboutCondition(label);
+  String get effectiveSummary => TreatmentGuidanceData.resolve(label).summary;
 
   String get effectiveRecommendations =>
-      recommendations ?? ScanDiagnosisHelper.recommendations(label);
+      TreatmentGuidanceData.resolve(label).plainText;
 
   Map<String, String> toResultMap() => {
         'label': label,

@@ -19,6 +19,7 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
   bool _newestFirst = true;
   List<ScanRecord> _scans = [];
   bool _loading = true;
+  String? _error;
 
   static const _filters = [
     'All',
@@ -40,12 +41,24 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
   }
 
   Future<void> _load() async {
-    setState(() => _loading = true);
-    final scans = await ScanHistoryService.fetchScans(limit: 200);
     if (mounted) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
+    try {
+      final scans = await ScanHistoryService.fetchScans(limit: 200);
+      if (!mounted) return;
       setState(() {
         _scans = scans;
         _loading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = 'Unable to load scan history. Check your connection.';
       });
     }
   }
@@ -176,19 +189,50 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
               Expanded(
                 child: _loading
                     ? const Center(child: CircularProgressIndicator())
-                    : filtered.isEmpty
-                        ? const Center(child: RecentScansEmptyState())
-                        : RefreshIndicator(
-                            onRefresh: _load,
-                            child: ListView.builder(
-                              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                              itemCount: filtered.length,
-                              itemBuilder: (context, i) => RecentScanCard(
-                                scan: filtered[i],
-                                animationDelay: (i % 5) * 40,
+                    : _error != null
+                        ? Center(
+                            child: SingleChildScrollView(
+                              padding: const EdgeInsets.all(24),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.cloud_off_outlined,
+                                    size: 48,
+                                    color: AppColors.mutedText,
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    _error!,
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                      color: AppColors.mutedText,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 14),
+                                  FilledButton.icon(
+                                    onPressed: _load,
+                                    icon: const Icon(Icons.refresh_rounded),
+                                    label: const Text('Try Again'),
+                                  ),
+                                ],
                               ),
                             ),
-                          ),
+                          )
+                        : filtered.isEmpty
+                            ? const Center(child: RecentScansEmptyState())
+                            : RefreshIndicator(
+                                onRefresh: _load,
+                                child: ListView.builder(
+                                  padding:
+                                      const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                                  itemCount: filtered.length,
+                                  itemBuilder: (context, i) => RecentScanCard(
+                                    scan: filtered[i],
+                                    animationDelay: (i % 5) * 40,
+                                  ),
+                                ),
+                              ),
               ),
             ],
           ),

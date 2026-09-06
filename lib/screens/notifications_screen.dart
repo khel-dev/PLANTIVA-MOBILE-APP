@@ -17,6 +17,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   final _service = ScanAnalyticsService();
   bool _loading = true;
   List<_NotifItem> _items = [];
+  String? _error;
 
   @override
   void initState() {
@@ -25,12 +26,21 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   Future<void> _load() async {
-    final scans = await _service.fetchScans(limit: 30);
-    if (!mounted) return;
-    setState(() {
-      _items = _buildNotifications(scans);
-      _loading = false;
-    });
+    try {
+      final scans = await _service.fetchScans(limit: 30);
+      if (!mounted) return;
+      setState(() {
+        _items = _buildNotifications(scans);
+        _loading = false;
+        _error = null;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = 'Unable to load alerts. Check your connection.';
+      });
+    }
   }
 
   List<_NotifItem> _buildNotifications(List<ScanRecord> scans) {
@@ -180,101 +190,138 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               Expanded(
                 child: _loading
                     ? const Center(child: CircularProgressIndicator())
-                    : ListView.builder(
-                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-                        itemCount: _items.length,
-                        itemBuilder: (context, i) {
-                          final n = _items[i];
-                          return TweenAnimationBuilder<double>(
-                            tween: Tween(begin: 0, end: 1),
-                            duration: Duration(milliseconds: 350 + i * 60),
-                            curve: Curves.easeOutCubic,
-                            builder: (context, v, child) => Opacity(
-                              opacity: v,
-                              child: Transform.translate(
-                                offset: Offset(0, 16 * (1 - v)),
-                                child: child,
-                              ),
-                            ),
-                            child: Container(
-                              margin: const EdgeInsets.only(bottom: 12),
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
-                                  color: n.isNew
-                                      ? AppColors.brightGreen
-                                          .withValues(alpha: 0.4)
-                                      : const Color(0xFFD0E9D4),
+                    : _error != null
+                        ? Center(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.cloud_off_outlined,
+                                  size: 46,
+                                  color: AppColors.mutedText,
                                 ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    blurRadius: 16,
-                                    color: Colors.black.withValues(alpha: 0.05),
-                                    offset: const Offset(0, 6),
+                                const SizedBox(height: 12),
+                                Text(
+                                  _error!,
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                    color: AppColors.mutedText,
                                   ),
-                                ],
-                              ),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Container(
-                                    width: 48,
-                                    height: 48,
-                                    decoration: BoxDecoration(
-                                      color: n.color.withValues(alpha: 0.12),
-                                      borderRadius: BorderRadius.circular(14),
+                                ),
+                                const SizedBox(height: 14),
+                                FilledButton.icon(
+                                  onPressed: () {
+                                    setState(() => _loading = true);
+                                    _load();
+                                  },
+                                  icon: const Icon(Icons.refresh_rounded),
+                                  label: const Text('Try Again'),
+                                ),
+                              ],
+                            ),
+                          )
+                        : ListView.builder(
+                            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+                            itemCount: _items.length,
+                            itemBuilder: (context, i) {
+                              final n = _items[i];
+                              return TweenAnimationBuilder<double>(
+                                tween: Tween(begin: 0, end: 1),
+                                duration: Duration(milliseconds: 350 + i * 60),
+                                curve: Curves.easeOutCubic,
+                                builder: (context, v, child) => Opacity(
+                                  opacity: v,
+                                  child: Transform.translate(
+                                    offset: Offset(0, 16 * (1 - v)),
+                                    child: child,
+                                  ),
+                                ),
+                                child: Container(
+                                  margin: const EdgeInsets.only(bottom: 12),
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(
+                                      color: n.isNew
+                                          ? AppColors.brightGreen
+                                              .withValues(alpha: 0.4)
+                                          : const Color(0xFFD0E9D4),
                                     ),
-                                    child: Icon(n.icon, color: n.color),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        blurRadius: 16,
+                                        color: Colors.black
+                                            .withValues(alpha: 0.05),
+                                        offset: const Offset(0, 6),
+                                      ),
+                                    ],
                                   ),
-                                  const SizedBox(width: 14),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Row(
+                                  child: Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Container(
+                                        width: 48,
+                                        height: 48,
+                                        decoration: BoxDecoration(
+                                          color:
+                                              n.color.withValues(alpha: 0.12),
+                                          borderRadius:
+                                              BorderRadius.circular(14),
+                                        ),
+                                        child: Icon(n.icon, color: n.color),
+                                      ),
+                                      const SizedBox(width: 14),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
                                           children: [
-                                            Expanded(
-                                              child: Text(
-                                                n.title,
-                                                style: const TextStyle(
-                                                  fontWeight: FontWeight.w800,
-                                                  fontSize: 16,
-                                                  color: Color(0xFF232625),
+                                            Row(
+                                              children: [
+                                                Expanded(
+                                                  child: Text(
+                                                    n.title,
+                                                    style: const TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.w800,
+                                                      fontSize: 16,
+                                                      color: Color(0xFF232625),
+                                                    ),
+                                                  ),
                                                 ),
+                                                if (n.isNew)
+                                                  Container(
+                                                    width: 8,
+                                                    height: 8,
+                                                    decoration:
+                                                        const BoxDecoration(
+                                                      color:
+                                                          AppColors.brightGreen,
+                                                      shape: BoxShape.circle,
+                                                    ),
+                                                  ),
+                                              ],
+                                            ),
+                                            const SizedBox(height: 6),
+                                            Text(
+                                              n.body,
+                                              style: TextStyle(
+                                                color: Colors.grey.shade700,
+                                                height: 1.45,
+                                                fontSize: 14,
                                               ),
                                             ),
-                                            if (n.isNew)
-                                              Container(
-                                                width: 8,
-                                                height: 8,
-                                                decoration: const BoxDecoration(
-                                                  color: AppColors.brightGreen,
-                                                  shape: BoxShape.circle,
-                                                ),
-                                              ),
                                           ],
                                         ),
-                                        const SizedBox(height: 6),
-                                        Text(
-                                          n.body,
-                                          style: TextStyle(
-                                            color: Colors.grey.shade700,
-                                            height: 1.45,
-                                            fontSize: 14,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
+                                      ),
+                                    ],
                                   ),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
-                      ),
+                                ),
+                              );
+                            },
+                          ),
               ),
             ],
           ),

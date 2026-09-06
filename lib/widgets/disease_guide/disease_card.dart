@@ -53,100 +53,97 @@ class _DiseaseCardState extends State<DiseaseCard> {
         child: AnimatedScale(
           scale: _scale,
           duration: const Duration(milliseconds: 120),
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(22),
-              border: Border.all(
-                color: widget.isViewed
-                    ? AppColors.brightGreen.withValues(alpha: 0.35)
-                    : const Color(0xFFD0E9D4),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  blurRadius: 16,
-                  color: Colors.black.withValues(alpha: 0.06),
-                  offset: const Offset(0, 6),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Stack(
-                  children: [
-                    DiseaseThumbnail(
-                      disease: d,
-                      height: 110,
-                      borderRadius: 22,
-                      heroTag: 'disease_img_${d.id}',
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final imageHeight =
+                  (constraints.maxHeight * 0.48).clamp(88.0, 112.0).toDouble();
+
+              return Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(
+                    color: widget.isViewed
+                        ? AppColors.brightGreen.withValues(alpha: 0.35)
+                        : const Color(0xFFD0E9D4),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      blurRadius: 14,
+                      color: Colors.black.withValues(alpha: 0.05),
+                      offset: const Offset(0, 5),
                     ),
-                    Positioned(
-                      top: 8,
-                      left: 8,
-                      child: _badge(d.category.label, d.category.color),
-                    ),
-                    if (widget.isBookmarked)
-                      const Positioned(
-                        top: 8,
-                        right: 8,
-                        child: Icon(
-                          Icons.bookmark,
-                          color: Colors.white,
-                          size: 20,
-                          shadows: [Shadow(blurRadius: 4)],
-                        ),
-                      ),
                   ],
                 ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        d.shortName,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w800,
-                          fontSize: 14,
-                          color: Color(0xFF1B4332),
-                          height: 1.2,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Stack(
+                      children: [
+                        DiseaseThumbnail(
+                          disease: d,
+                          height: imageHeight,
+                          borderRadius: 18,
+                          heroTag: 'disease_img_${d.id}',
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.warning_amber_rounded,
-                            size: 14,
-                            color: d.risk.color,
+                        Positioned(
+                          top: 8,
+                          left: 8,
+                          child: _badge(d.category.label, d.category.color),
+                        ),
+                        if (widget.isBookmarked)
+                          const Positioned(
+                            top: 8,
+                            right: 8,
+                            child: Icon(
+                              Icons.bookmark,
+                              color: Colors.white,
+                              size: 20,
+                              shadows: [Shadow(blurRadius: 4)],
+                            ),
                           ),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            child: Text(
-                              d.risk.label,
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                color: d.risk.color,
+                      ],
+                    ),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(12, 10, 12, 11),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              d.shortName,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w800,
+                                fontSize: 14,
+                                color: Color(0xFF1B4332),
+                                height: 1.2,
                               ),
                             ),
-                          ),
-                          if (widget.isViewed)
-                            Icon(
-                              Icons.check_circle,
-                              size: 16,
-                              color: AppColors.green.withValues(alpha: 0.8),
+                            const Spacer(),
+                            Row(
+                              children: [
+                                Expanded(child: _supportBadge(d)),
+                                if (widget.isViewed) ...[
+                                  const SizedBox(width: 5),
+                                  Icon(
+                                    Icons.check_circle,
+                                    size: 16,
+                                    color:
+                                        AppColors.green.withValues(alpha: 0.8),
+                                  ),
+                                ],
+                              ],
                             ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              );
+            },
           ),
         ),
       ),
@@ -168,6 +165,37 @@ class _DiseaseCardState extends State<DiseaseCard> {
           fontWeight: FontWeight.w700,
         ),
       ),
+    );
+  }
+
+  Widget _supportBadge(DiseaseGuideItem disease) {
+    final supported = disease.isAiDetectable;
+    final color = supported ? AppColors.green : const Color(0xFF5F6B64);
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          supported
+              ? Icons.document_scanner_outlined
+              : Icons.menu_book_outlined,
+          size: 14,
+          color: color,
+        ),
+        const SizedBox(width: 4),
+        Flexible(
+          child: Text(
+            supported ? 'PLANTIVA Scan' : 'Educational',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: color,
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 
 enum DiseaseCategory { fungal, viral, bacterial, pest, postharvest, healthy }
 
-enum DiseaseRisk { low, moderate, high }
-
 extension DiseaseCategoryX on DiseaseCategory {
   String get label {
     switch (this) {
@@ -36,30 +34,6 @@ extension DiseaseCategoryX on DiseaseCategory {
         return const Color(0xFF795548);
       case DiseaseCategory.healthy:
         return const Color(0xFF2E7D32);
-    }
-  }
-}
-
-extension DiseaseRiskX on DiseaseRisk {
-  String get label {
-    switch (this) {
-      case DiseaseRisk.low:
-        return 'Low Risk';
-      case DiseaseRisk.moderate:
-        return 'Moderate Risk';
-      case DiseaseRisk.high:
-        return 'High Risk';
-    }
-  }
-
-  Color get color {
-    switch (this) {
-      case DiseaseRisk.low:
-        return const Color(0xFF388E3C);
-      case DiseaseRisk.moderate:
-        return const Color(0xFFF57F17);
-      case DiseaseRisk.high:
-        return const Color(0xFFD32F2F);
     }
   }
 }
@@ -102,17 +76,35 @@ class DiseaseVideo {
   const DiseaseVideo({
     required this.title,
     required this.channel,
-    required this.duration,
-    required this.searchQuery,
+    required this.url,
+    this.isVideo = false,
   });
 
   final String title;
   final String channel;
-  final String duration;
-  final String searchQuery;
+  final String url;
+  final bool isVideo;
 
-  String get watchUrl =>
-      'https://www.youtube.com/results?search_query=${Uri.encodeComponent(searchQuery)}';
+  Uri? get uri {
+    final parsed = Uri.tryParse(url);
+    if (parsed == null || !parsed.hasScheme) return null;
+    if (parsed.scheme != 'https' && parsed.scheme != 'http') return null;
+    return parsed;
+  }
+}
+
+class DiseaseSource {
+  const DiseaseSource({required this.name, required this.url});
+
+  final String name;
+  final String url;
+
+  Uri? get uri {
+    final parsed = Uri.tryParse(url);
+    if (parsed == null || !parsed.hasScheme) return null;
+    if (parsed.scheme != 'https' && parsed.scheme != 'http') return null;
+    return parsed;
+  }
 }
 
 class DiseaseQuickFact {
@@ -128,7 +120,6 @@ class DiseaseGuideItem {
     required this.name,
     required this.shortName,
     required this.category,
-    required this.risk,
     required this.imageUrl,
     required this.fallbackAsset,
     required this.summary,
@@ -153,7 +144,6 @@ class DiseaseGuideItem {
   final String name;
   final String shortName;
   final DiseaseCategory category;
-  final DiseaseRisk risk;
   final String imageUrl;
   final String fallbackAsset;
   final String summary;
@@ -171,5 +161,5 @@ class DiseaseGuideItem {
   final String? scientificName;
   final bool isAiDetectable;
   final String? modelLabel;
-  final List<String> sources;
+  final List<DiseaseSource> sources;
 }

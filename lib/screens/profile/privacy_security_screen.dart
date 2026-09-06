@@ -149,6 +149,7 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
+        scrollable: true,
         title: const Text('Delete Account?'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -293,7 +294,7 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
               );
             }),
             _tile(Icons.privacy_tip_outlined, 'View Privacy Policy', () {
-              launchUrl(Uri.parse('https://plantiva.app/privacy'));
+              _openPrivacyPolicy();
             }),
             const SizedBox(height: 20),
             Material(
@@ -339,6 +340,29 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _openPrivacyPolicy() async {
+    try {
+      final opened = await launchUrl(
+        Uri.parse('https://plantiva.app/privacy'),
+        mode: LaunchMode.externalApplication,
+      );
+      if (!opened && mounted) {
+        PlantivaFeedback.show(
+          context,
+          message: 'Unable to open the privacy policy.',
+          type: PlantivaFeedbackType.error,
+        );
+      }
+    } catch (_) {
+      if (!mounted) return;
+      PlantivaFeedback.show(
+        context,
+        message: 'Unable to open the privacy policy.',
+        type: PlantivaFeedbackType.error,
+      );
+    }
   }
 
   Widget _tile(IconData icon, String title, VoidCallback onTap) {

@@ -1,7 +1,38 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_plantiva/config/app_colors.dart';
+import 'package:flutter_plantiva/screens/profile/about_plantiva_screen.dart';
+import 'package:flutter_plantiva/utils/plantiva_feedback.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_plantiva/widgets/plantiva_decorated_background.dart';
+
+const plantivaSupportEmail = 'queljayverdelossantos@gmail.com';
+
+Uri contactSupportEmailUri() => Uri(
+      scheme: 'mailto',
+      path: plantivaSupportEmail,
+      queryParameters: const {
+        'subject': 'PLANTIVA Support Request',
+        'body': 'Hello PLANTIVA Team,\n\n'
+            'I need assistance with the PLANTIVA app.\n\n'
+            'Concern:\n[Please describe your concern here.]\n\n'
+            'Thank you.',
+      },
+    );
+
+Uri reportProblemEmailUri() => Uri(
+      scheme: 'mailto',
+      path: plantivaSupportEmail,
+      queryParameters: const {
+        'subject': 'PLANTIVA App Problem Report',
+        'body': 'Hello PLANTIVA Team,\n\n'
+            'I encountered a problem while using the PLANTIVA app.\n\n'
+            'Problem:\n[Please describe what happened.]\n\n'
+            'Where it happened:\n'
+            '[Example: Scanner, Disease Guide, Profile, Saved Scans]\n\n'
+            'Steps before the issue occurred:\n1.\n2.\n3.\n\n'
+            'Thank you.',
+      },
+    );
 
 class HelpCenterScreen extends StatefulWidget {
   const HelpCenterScreen({super.key});
@@ -29,7 +60,8 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
     (
       'What diseases can PLANTIVA detect?',
       'Our model detects Black Sigatoka, Yellow Sigatoka, Panama Disease, '
-          'Moko Disease, Bract Mosaic Virus, Insect Pest damage, and Healthy leaves.',
+          'Moko Disease, Bract Mosaic Virus, Bunchy Top Disease, Insect Pest '
+          'Damage, and Healthy Leaf.',
     ),
     (
       'Is my data stored securely?',
@@ -123,26 +155,52 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
             _actionTile(
               Icons.mail_outline,
               'Contact Support',
-              'support@plantiva.app',
-              () => launchUrl(Uri.parse('mailto:support@plantiva.app')),
+              plantivaSupportEmail,
+              () => _openExternal(contactSupportEmailUri()),
             ),
             const SizedBox(height: 10),
             _actionTile(
               Icons.report_problem_outlined,
               'Report a Problem',
               'Tell us about bugs or issues',
-              () {
-                launchUrl(
-                  Uri.parse(
-                    'mailto:support@plantiva.app?subject=PLANTIVA%20Bug%20Report',
-                  ),
-                );
-              },
+              () => _openExternal(reportProblemEmailUri()),
+            ),
+            const SizedBox(height: 10),
+            _actionTile(
+              Icons.info_outline_rounded,
+              'About PLANTIVA',
+              'Purpose, team, and official website',
+              () => Navigator.push(
+                context,
+                MaterialPageRoute<void>(
+                  builder: (_) => const AboutPlantivaScreen(),
+                ),
+              ),
             ),
           ],
         ),
       ),
     );
+  }
+
+  Future<void> _openExternal(Uri uri) async {
+    try {
+      final opened = await launchUrl(uri);
+      if (!opened && mounted) {
+        PlantivaFeedback.show(
+          context,
+          message: 'Unable to open your email app.',
+          type: PlantivaFeedbackType.error,
+        );
+      }
+    } catch (_) {
+      if (!mounted) return;
+      PlantivaFeedback.show(
+        context,
+        message: 'Unable to open your email app.',
+        type: PlantivaFeedbackType.error,
+      );
+    }
   }
 
   Widget _actionTile(

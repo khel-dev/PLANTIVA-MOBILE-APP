@@ -358,7 +358,7 @@ class _ScannerPreview extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AspectRatio(
-      aspectRatio: compact ? 1.22 : 1.10,
+      aspectRatio: compact ? 1.08 : 1.02,
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: const Color(0xFFEDF3E9),
@@ -387,7 +387,7 @@ class _ScannerPreview extends StatelessWidget {
                 ),
               ),
               Padding(
-                padding: EdgeInsets.all(compact ? 24 : 30),
+                padding: EdgeInsets.all(compact ? 18 : 24),
                 child: DecoratedBox(
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.42),
@@ -398,18 +398,13 @@ class _ScannerPreview extends StatelessWidget {
                   ),
                 ),
               ),
-              Center(
-                child: Icon(
-                  Icons.crop_free_rounded,
-                  size: compact ? 150 : 188,
-                  color: AppColors.green.withValues(alpha: 0.20),
-                ),
-              ),
               if (phase == _ModelPhase.ready)
                 Align(
                   alignment: Alignment(0, -0.84 + (1.68 * sweep)),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 38),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: compact ? 28 : 34,
+                    ),
                     child: Container(
                       height: 2,
                       color: AppColors.green.withValues(alpha: 0.20),
@@ -510,7 +505,7 @@ class _PreviewState extends StatelessWidget {
                   size: 30,
                 ),
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 18),
         Text(
           phase == _ModelPhase.loading
               ? 'Preparing scanner...'
@@ -522,7 +517,7 @@ class _PreviewState extends StatelessWidget {
             fontSize: 17,
           ),
         ),
-        const SizedBox(height: 5),
+        const SizedBox(height: 8),
         Text(
           phase == _ModelPhase.loading
               ? 'This will only take a moment.'

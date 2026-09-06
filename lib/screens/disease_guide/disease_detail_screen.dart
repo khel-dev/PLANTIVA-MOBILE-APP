@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_plantiva/config/app_colors.dart';
 import 'package:flutter_plantiva/data/disease_guide_data.dart';
 import 'package:flutter_plantiva/models/disease_guide.dart';
@@ -7,7 +8,6 @@ import 'package:flutter_plantiva/utils/page_transitions.dart';
 import 'package:flutter_plantiva/utils/plantiva_feedback.dart';
 import 'package:flutter_plantiva/widgets/disease_guide/disease_card.dart';
 import 'package:flutter_plantiva/widgets/disease_guide/disease_thumbnail.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class DiseaseDetailScreen extends StatefulWidget {
   const DiseaseDetailScreen({
@@ -25,6 +25,7 @@ class DiseaseDetailScreen extends StatefulWidget {
 
 class _DiseaseDetailScreenState extends State<DiseaseDetailScreen> {
   final _service = DiseaseGuideService();
+  final _resourceLauncher = DiseaseGuideResourceLauncher();
   bool _bookmarked = false;
   bool _studied = false;
 
@@ -78,36 +79,49 @@ class _DiseaseDetailScreenState extends State<DiseaseDetailScreen> {
     }
   }
 
-  Future<void> _openVideo(DiseaseVideo video) async {
-    final uri = Uri.parse(video.watchUrl);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
+  Future<void> _openResource(Uri? uri) async {
+    final opened = await _resourceLauncher.open(uri);
+    if (!opened && mounted) {
+      PlantivaFeedback.show(
+        context,
+        message: 'Unable to open this learning resource right now.',
+        type: PlantivaFeedbackType.error,
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final d = widget.disease;
+    final screen = MediaQuery.sizeOf(context);
+    final heroHeight = (screen.height * 0.32).clamp(220.0, 300.0).toDouble();
+    final horizontalPadding = screen.width < 350 ? 14.0 : 18.0;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFE7F5E9),
+      backgroundColor: const Color(0xFFF7F6F1),
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
-            expandedHeight: 260,
+            expandedHeight: heroHeight,
             pinned: true,
             backgroundColor: AppColors.green,
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new_rounded),
+            foregroundColor: Colors.white,
+            systemOverlayStyle: SystemUiOverlayStyle.light,
+            leadingWidth: 72,
+            leading: _headerButton(
+              key: const ValueKey('disease_detail_back_button'),
+              icon: Icons.arrow_back_ios_new_rounded,
+              tooltip: 'Back',
               onPressed: () => Navigator.pop(context),
             ),
             actions: [
-              IconButton(
+              _headerButton(
+                key: const ValueKey('disease_detail_bookmark_button'),
                 onPressed: _toggleBookmark,
-                icon: Icon(
-                  _bookmarked ? Icons.bookmark : Icons.bookmark_outline,
-                ),
+                icon: _bookmarked ? Icons.bookmark : Icons.bookmark_outline,
+                tooltip: _bookmarked ? 'Remove saved guide' : 'Save guide',
               ),
+              const SizedBox(width: 8),
             ],
             flexibleSpace: FlexibleSpaceBar(
               background: Stack(
@@ -115,7 +129,7 @@ class _DiseaseDetailScreenState extends State<DiseaseDetailScreen> {
                 children: [
                   DiseaseThumbnail(
                     disease: d,
-                    height: 260,
+                    height: heroHeight,
                     borderRadius: 0,
                     heroTag: 'disease_img_${d.id}',
                   ),
@@ -125,34 +139,12 @@ class _DiseaseDetailScreenState extends State<DiseaseDetailScreen> {
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                         colors: [
+                          Colors.black.withValues(alpha: 0.28),
                           Colors.transparent,
-                          Colors.black.withValues(alpha: 0.65),
+                          Colors.black.withValues(alpha: 0.16),
                         ],
+                        stops: const [0, 0.45, 1],
                       ),
-                    ),
-                  ),
-                  Positioned(
-                    left: 16,
-                    right: 16,
-                    bottom: 16,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _chip(d.category.label, d.category.color),
-                        const SizedBox(height: 8),
-                        Text(
-                          d.name,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 22,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        _chip(d.risk.label, d.risk.color),
-                      ],
                     ),
                   ),
                 ],
@@ -160,19 +152,69 @@ class _DiseaseDetailScreenState extends State<DiseaseDetailScreen> {
             ),
           ),
           SliverPadding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+            padding: EdgeInsets.fromLTRB(
+              horizontalPadding,
+              22,
+              horizontalPadding,
+              40,
+            ),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
                 Text(
-                  d.summary,
+                  d.name,
                   style: TextStyle(
-                    fontSize: 16,
-                    height: 1.5,
-                    color: Colors.grey.shade800,
-                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFF202422),
+                    fontSize: screen.width < 350 ? 25 : 29,
+                    height: 1.15,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
-                const SizedBox(height: 20),
+                if (d.scientificName != null &&
+                    d.scientificName!.trim().isNotEmpty) ...[
+                  const SizedBox(height: 7),
+                  Text(
+                    d.scientificName!,
+                    style: const TextStyle(
+                      color: AppColors.mutedText,
+                      fontSize: 14,
+                      height: 1.35,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _chip(d.category.label, d.category.color),
+                    _supportChip(d),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                _card(
+                  child: Text(
+                    d.summary,
+                    style: TextStyle(
+                      fontSize: 16,
+                      height: 1.5,
+                      color: Colors.grey.shade800,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  d.isAiDetectable
+                      ? 'PLANTIVA can screen this visual category, but field confirmation may still be needed.'
+                      : 'This guide is educational only and is not identified by the PLANTIVA scanner.',
+                  key: const ValueKey('disease_detail_support_note'),
+                  style: const TextStyle(
+                    color: AppColors.mutedText,
+                    height: 1.4,
+                    fontSize: 13,
+                  ),
+                ),
                 _sectionTitle('Overview'),
                 _card(
                   child: Column(
@@ -183,17 +225,19 @@ class _DiseaseDetailScreenState extends State<DiseaseDetailScreen> {
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: d.risk.color.withValues(alpha: 0.08),
+                          color: AppColors.green.withValues(alpha: 0.07),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: d.risk.color.withValues(alpha: 0.2),
+                            color: AppColors.green.withValues(alpha: 0.16),
                           ),
                         ),
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Icon(Icons.warning_amber_rounded,
-                                color: d.risk.color),
+                            const Icon(
+                              Icons.info_outline_rounded,
+                              color: AppColors.green,
+                            ),
                             const SizedBox(width: 10),
                             Expanded(
                               child: Text(
@@ -210,11 +254,21 @@ class _DiseaseDetailScreenState extends State<DiseaseDetailScreen> {
                     ],
                   ),
                 ),
-                _sectionTitle('Visual Symptoms'),
+                _sectionTitle(
+                  d.category == DiseaseCategory.healthy
+                      ? 'Healthy Leaf Signs'
+                      : 'Common Signs',
+                ),
                 ...d.symptoms.map(_symptomCard),
-                _sectionTitle('Causes'),
+                _sectionTitle(
+                  d.category == DiseaseCategory.healthy
+                      ? 'What Supports Healthy Growth'
+                      : 'How It Spreads or Develops',
+                ),
                 ...d.causes.map(_causeCard),
-                _sectionTitle('Prevention Guide'),
+                _sectionTitle('What Farmers Can Do'),
+                ...d.treatments.map(_treatmentTile),
+                _sectionTitle('Prevention & Management'),
                 _card(
                   child: Column(
                     children: d.prevention
@@ -238,10 +292,6 @@ class _DiseaseDetailScreenState extends State<DiseaseDetailScreen> {
                         .toList(),
                   ),
                 ),
-                _sectionTitle('Treatment & Management'),
-                ...d.treatments.map(_treatmentTile),
-                _sectionTitle('Learn More Through Video'),
-                ...d.videos.map(_videoCard),
                 _sectionTitle('Quick Facts'),
                 Wrap(
                   spacing: 8,
@@ -286,8 +336,23 @@ class _DiseaseDetailScreenState extends State<DiseaseDetailScreen> {
                 ...d.farmerTips.map(_tipCard),
                 if (d.sources.isNotEmpty) ...[
                   const SizedBox(height: 10),
-                  _sectionTitle('References'),
+                  _sectionTitle('Sources & References'),
                   _referencesCard(d.sources),
+                ],
+                if (d.videos.isNotEmpty) ...[
+                  _sectionTitle('Trusted Learning Resource'),
+                  ...d.videos.map(_resourceCard),
+                  const Padding(
+                    padding: EdgeInsets.only(top: 2),
+                    child: Text(
+                      'Internet connection required to open external resources.',
+                      style: TextStyle(
+                        color: AppColors.mutedText,
+                        fontSize: 12,
+                        height: 1.4,
+                      ),
+                    ),
+                  ),
                 ],
                 const SizedBox(height: 12),
                 if (!_studied)
@@ -300,7 +365,7 @@ class _DiseaseDetailScreenState extends State<DiseaseDetailScreen> {
                     ),
                   ),
                 const SizedBox(height: 20),
-                _sectionTitle('Similar Banana Diseases'),
+                _sectionTitle('Related Banana Guides'),
                 const SizedBox(height: 8),
                 SizedBox(
                   height: 200,
@@ -339,6 +404,30 @@ class _DiseaseDetailScreenState extends State<DiseaseDetailScreen> {
   }
 
   static const _body = TextStyle(height: 1.5, fontSize: 15);
+
+  Widget _headerButton({
+    required Key key,
+    required IconData icon,
+    required String tooltip,
+    required VoidCallback onPressed,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.all(8),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.42),
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white.withValues(alpha: 0.35)),
+        ),
+        child: IconButton(
+          key: key,
+          tooltip: tooltip,
+          onPressed: onPressed,
+          icon: Icon(icon, color: Colors.white, size: 22),
+        ),
+      ),
+    );
+  }
 
   Widget _sectionTitle(String t) {
     return Padding(
@@ -386,6 +475,45 @@ class _DiseaseDetailScreenState extends State<DiseaseDetailScreen> {
           fontWeight: FontWeight.w700,
           fontSize: 11,
         ),
+      ),
+    );
+  }
+
+  Widget _supportChip(DiseaseGuideItem disease) {
+    final supported = disease.isAiDetectable;
+    final color = supported ? AppColors.green : const Color(0xFF5F6B64);
+
+    return Container(
+      key: const ValueKey('disease_detail_support_badge'),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: 0.22)),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            supported
+                ? Icons.document_scanner_outlined
+                : Icons.menu_book_outlined,
+            size: 15,
+            color: color,
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              supported ? 'Supported by PLANTIVA Scan' : 'Educational Guide',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: color,
+                fontWeight: FontWeight.w700,
+                fontSize: 11,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -497,67 +625,72 @@ class _DiseaseDetailScreenState extends State<DiseaseDetailScreen> {
     );
   }
 
-  Widget _videoCard(DiseaseVideo v) {
-    return GestureDetector(
-      onTap: () => _openVideo(v),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              blurRadius: 10,
-              color: Colors.black.withValues(alpha: 0.05),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 120,
-              height: 80,
-              decoration: BoxDecoration(
-                color: AppColors.green.withValues(alpha: 0.12),
-                borderRadius: const BorderRadius.horizontal(
-                  left: Radius.circular(16),
+  Widget _resourceCard(DiseaseVideo resource) {
+    return Semantics(
+      button: true,
+      label: 'Open ${resource.title}. Internet connection required.',
+      child: InkWell(
+        onTap: () => _openResource(resource.uri),
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                blurRadius: 10,
+                color: Colors.black.withValues(alpha: 0.05),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 120,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: AppColors.green.withValues(alpha: 0.12),
+                  borderRadius: const BorderRadius.horizontal(
+                    left: Radius.circular(16),
+                  ),
+                ),
+                child: const Icon(
+                  Icons.language_rounded,
+                  color: AppColors.green,
+                  size: 38,
                 ),
               ),
-              child: const Icon(
-                Icons.play_circle_fill,
-                color: AppColors.green,
-                size: 44,
-              ),
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      v.title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${v.channel} - ${v.duration}',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AppColors.mutedText,
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        resource.title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontWeight: FontWeight.w700),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 4),
+                      Text(
+                        resource.channel,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.mutedText,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            const Padding(
-              padding: EdgeInsets.only(right: 12),
-              child: Icon(Icons.open_in_new, color: AppColors.green),
-            ),
-          ],
+              const Padding(
+                padding: EdgeInsets.only(right: 12),
+                child: Icon(Icons.open_in_new, color: AppColors.green),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -598,7 +731,7 @@ class _DiseaseDetailScreenState extends State<DiseaseDetailScreen> {
     );
   }
 
-  Widget _referencesCard(List<String> sources) {
+  Widget _referencesCard(List<DiseaseSource> sources) {
     return _card(
       child: Column(
         children: List.generate(
@@ -607,31 +740,51 @@ class _DiseaseDetailScreenState extends State<DiseaseDetailScreen> {
             padding: EdgeInsets.only(
               bottom: index == sources.length - 1 ? 0 : 10,
             ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 7,
-                  height: 7,
-                  margin: const EdgeInsets.only(top: 7),
-                  decoration: const BoxDecoration(
-                    color: AppColors.green,
-                    shape: BoxShape.circle,
+            child: Semantics(
+              button: sources[index].uri != null,
+              label: 'Open source: ${sources[index].name}',
+              child: InkWell(
+                onTap: sources[index].uri == null
+                    ? null
+                    : () => _openResource(sources[index].uri),
+                borderRadius: BorderRadius.circular(10),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Padding(
+                        padding: EdgeInsets.only(top: 1),
+                        child: Icon(
+                          Icons.article_outlined,
+                          size: 20,
+                          color: AppColors.green,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          sources[index].name,
+                          style: TextStyle(
+                            color: Colors.grey.shade800,
+                            fontSize: 14,
+                            height: 1.45,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      if (sources[index].uri != null) ...[
+                        const SizedBox(width: 8),
+                        const Icon(
+                          Icons.open_in_new,
+                          size: 18,
+                          color: AppColors.green,
+                        ),
+                      ],
+                    ],
                   ),
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    sources[index],
-                    style: TextStyle(
-                      color: Colors.grey.shade800,
-                      fontSize: 14,
-                      height: 1.45,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
         ),

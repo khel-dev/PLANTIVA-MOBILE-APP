@@ -8,6 +8,8 @@ import 'package:flutter_plantiva/utils/page_transitions.dart';
 import 'package:flutter_plantiva/widgets/disease_guide/disease_card.dart';
 import 'package:flutter_plantiva/widgets/plantiva_decorated_background.dart';
 
+enum _GuideScope { all, scanSupported, educational, saved }
+
 class DiseaseGuideScreen extends StatefulWidget {
   const DiseaseGuideScreen({super.key});
 
@@ -19,7 +21,7 @@ class _DiseaseGuideScreenState extends State<DiseaseGuideScreen> {
   final _search = TextEditingController();
   final _service = DiseaseGuideService();
   DiseaseCategory? _filter;
-  bool _savedOnly = false;
+  _GuideScope _scope = _GuideScope.all;
   Set<String> _bookmarks = {};
   Set<String> _viewed = {};
   bool _loading = true;
@@ -53,8 +55,12 @@ class _DiseaseGuideScreenState extends State<DiseaseGuideScreen> {
     var list = DiseaseGuideData.all;
     final q = _search.text.trim().toLowerCase();
 
-    if (_savedOnly) {
+    if (_scope == _GuideScope.saved) {
       list = list.where((d) => _bookmarks.contains(d.id)).toList();
+    } else if (_scope == _GuideScope.scanSupported) {
+      list = list.where((d) => d.isAiDetectable).toList();
+    } else if (_scope == _GuideScope.educational) {
+      list = list.where((d) => !d.isAiDetectable).toList();
     }
 
     if (_filter != null) {
@@ -94,7 +100,9 @@ class _DiseaseGuideScreenState extends State<DiseaseGuideScreen> {
   @override
   Widget build(BuildContext context) {
     final filtered = _filtered;
-    final explored = _viewed.length;
+    final guideIds = DiseaseGuideData.all.map((d) => d.id).toSet();
+    final explored = _viewed.intersection(guideIds).length;
+    final saved = _bookmarks.intersection(guideIds).length;
     final total = DiseaseGuideData.all.length;
 
     return PlantivaDecoratedBackground(
@@ -126,7 +134,7 @@ class _DiseaseGuideScreenState extends State<DiseaseGuideScreen> {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        _progressCard(explored, total),
+                        _progressCard(explored, saved, total),
                         const SizedBox(height: 14),
                         TextField(
                           controller: _search,
@@ -146,18 +154,39 @@ class _DiseaseGuideScreenState extends State<DiseaseGuideScreen> {
                           scrollDirection: Axis.horizontal,
                           child: Row(
                             children: [
-                              _filterChip('All', _filter == null && !_savedOnly,
-                                  () {
-                                setState(() {
+                              _filterChip(
+                                'All',
+                                _scope == _GuideScope.all && _filter == null,
+                                () {
+                                  setState(() {
+                                    _filter = null;
+                                    _scope = _GuideScope.all;
+                                  });
+                                },
+                              ),
+                              _filterChip(
+                                'Scanner Supported',
+                                _scope == _GuideScope.scanSupported,
+                                () => setState(() {
+                                  _scope = _GuideScope.scanSupported;
                                   _filter = null;
-                                  _savedOnly = false;
-                                });
-                              }),
+                                }),
+                                icon: Icons.document_scanner_outlined,
+                              ),
+                              _filterChip(
+                                'Educational',
+                                _scope == _GuideScope.educational,
+                                () => setState(() {
+                                  _scope = _GuideScope.educational;
+                                  _filter = null;
+                                }),
+                                icon: Icons.menu_book_outlined,
+                              ),
                               _filterChip(
                                 'Saved',
-                                _savedOnly,
+                                _scope == _GuideScope.saved,
                                 () => setState(() {
-                                  _savedOnly = true;
+                                  _scope = _GuideScope.saved;
                                   _filter = null;
                                 }),
                                 icon: Icons.bookmark_outline,
@@ -165,10 +194,10 @@ class _DiseaseGuideScreenState extends State<DiseaseGuideScreen> {
                               ...DiseaseCategory.values.map(
                                 (c) => _filterChip(
                                   c.label,
-                                  _filter == c && !_savedOnly,
+                                  _filter == c,
                                   () => setState(() {
                                     _filter = c;
-                                    _savedOnly = false;
+                                    _scope = _GuideScope.all;
                                   }),
                                 ),
                               ),
@@ -213,55 +242,79 @@ class _DiseaseGuideScreenState extends State<DiseaseGuideScreen> {
     );
   }
 
-  Widget _progressCard(int explored, int total) {
+  Widget _progressCard(int explored, int saved, int total) {
     final pct = total == 0 ? 0.0 : explored / total;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            AppColors.green,
-            AppColors.brightGreen.withValues(alpha: 0.85),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(20),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFD8E8D9)),
         boxShadow: [
           BoxShadow(
-            blurRadius: 16,
-            color: AppColors.green.withValues(alpha: 0.25),
-            offset: const Offset(0, 6),
+            blurRadius: 12,
+            color: Colors.black.withValues(alpha: 0.04),
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Row(
         children: [
-          SizedBox(
-            width: 52,
-            height: 52,
-            child: CircularProgressIndicator(
-              value: pct,
-              strokeWidth: 5,
-              backgroundColor: Colors.white24,
-              valueColor: const AlwaysStoppedAnimation(Colors.white),
+          Container(
+            width: 46,
+            height: 46,
+            decoration: BoxDecoration(
+              color: AppColors.green.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
             ),
+            child: const Icon(Icons.menu_book_outlined, color: AppColors.green),
           ),
           const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Learning Progress',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 16,
+                Row(
+                  children: [
+                    const Expanded(
+                      child: Text(
+                        'Guides viewed',
+                        style: TextStyle(
+                          color: Color(0xFF202422),
+                          fontWeight: FontWeight.w800,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      '$explored / $total',
+                      style: const TextStyle(
+                        color: AppColors.green,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 7),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: LinearProgressIndicator(
+                    value: pct.clamp(0, 1),
+                    minHeight: 5,
+                    backgroundColor: const Color(0xFFE7EFE8),
+                    valueColor:
+                        const AlwaysStoppedAnimation(AppColors.brightGreen),
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 7),
                 Text(
-                  "You've explored $explored out of $total disease guides",
-                  style: const TextStyle(color: Colors.white70, fontSize: 13),
+                  '$saved saved ${saved == 1 ? 'guide' : 'guides'}',
+                  style: const TextStyle(
+                    color: AppColors.mutedText,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 12,
+                  ),
                 ),
               ],
             ),
@@ -300,13 +353,15 @@ class _DiseaseGuideScreenState extends State<DiseaseGuideScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              _savedOnly ? Icons.bookmark_border : Icons.menu_book_outlined,
+              _scope == _GuideScope.saved
+                  ? Icons.bookmark_border
+                  : Icons.menu_book_outlined,
               size: 56,
               color: Colors.grey.shade400,
             ),
             const SizedBox(height: 16),
             Text(
-              _savedOnly
+              _scope == _GuideScope.saved
                   ? 'No saved guides yet'
                   : 'No diseases match your search',
               style: const TextStyle(
@@ -316,7 +371,7 @@ class _DiseaseGuideScreenState extends State<DiseaseGuideScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              _savedOnly
+              _scope == _GuideScope.saved
                   ? 'Bookmark disease guides while reading to find them here.'
                   : 'Search for a disease or symptom to begin learning.',
               textAlign: TextAlign.center,

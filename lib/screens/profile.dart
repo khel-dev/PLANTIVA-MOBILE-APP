@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -15,6 +17,13 @@ import 'package:flutter_plantiva/utils/plantiva_feedback.dart';
 import 'package:flutter_plantiva/utils/validators.dart';
 import 'package:flutter_plantiva/widgets/plantiva_decorated_background.dart';
 
+const profilePhotoMenuLabels = <String>[
+  'Take Photo',
+  'Choose from Gallery',
+  'Remove Photo',
+  'Cancel',
+];
+
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
 
@@ -29,6 +38,9 @@ class _ProfilePageState extends State<ProfilePage>
 
   final _authService = AuthService();
   final _profileService = ProfileService();
+  String? _pendingPhotoPath;
+  bool _photoBusy = false;
+  int _photoRevision = 0;
 
   @override
   void initState() {
@@ -48,6 +60,69 @@ class _ProfilePageState extends State<ProfilePage>
   void dispose() {
     _introController.dispose();
     super.dispose();
+  }
+
+  Future<void> _updatePhoto(ImageSource source) async {
+    if (_photoBusy) return;
+    setState(() => _photoBusy = true);
+    try {
+      final url = await _profileService.pickAndUploadPhoto(
+        source,
+        onImageSelected: (path) {
+          if (mounted) setState(() => _pendingPhotoPath = path);
+        },
+      );
+      if (url == null || !mounted) return;
+      await CachedNetworkImage.evictFromCache(url);
+      if (!mounted) return;
+      setState(() {
+        _pendingPhotoPath = null;
+        _photoRevision++;
+      });
+      PlantivaFeedback.show(
+        context,
+        message: 'Profile photo updated.',
+        type: PlantivaFeedbackType.success,
+      );
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _pendingPhotoPath = null;
+        _photoRevision++;
+      });
+      PlantivaFeedback.show(
+        context,
+        message: 'Profile photo could not be updated. Please try again.',
+        type: PlantivaFeedbackType.error,
+      );
+    } finally {
+      if (mounted) setState(() => _photoBusy = false);
+    }
+  }
+
+  Future<void> _removePhoto(String currentUrl) async {
+    if (_photoBusy) return;
+    setState(() => _photoBusy = true);
+    try {
+      await _profileService.removePhoto();
+      await CachedNetworkImage.evictFromCache(currentUrl);
+      if (!mounted) return;
+      setState(() => _pendingPhotoPath = null);
+      PlantivaFeedback.show(
+        context,
+        message: 'Profile photo removed.',
+        type: PlantivaFeedbackType.success,
+      );
+    } catch (_) {
+      if (!mounted) return;
+      PlantivaFeedback.show(
+        context,
+        message: 'Profile photo could not be removed. Please try again.',
+        type: PlantivaFeedbackType.error,
+      );
+    } finally {
+      if (mounted) setState(() => _photoBusy = false);
+    }
   }
 
   void _showPhotoSheet(String? currentUrl) {
@@ -80,34 +155,38 @@ class _ProfilePageState extends State<ProfilePage>
               _sheetOption(
                 ctx,
                 Icons.camera_alt_outlined,
-                'Take Photo',
+                profilePhotoMenuLabels[0],
                 () async {
                   Navigator.pop(ctx);
-                  await _profileService.pickAndUploadPhoto(ImageSource.camera);
+                  await _updatePhoto(ImageSource.camera);
                 },
               ),
               _sheetOption(
                 ctx,
                 Icons.photo_library_outlined,
-                'Choose from Gallery',
+                profilePhotoMenuLabels[1],
                 () async {
                   Navigator.pop(ctx);
-                  await _profileService.pickAndUploadPhoto(ImageSource.gallery);
+                  await _updatePhoto(ImageSource.gallery);
                 },
               ),
               if (currentUrl != null && currentUrl.isNotEmpty)
                 _sheetOption(
                   ctx,
                   Icons.delete_outline,
-                  'Remove Photo',
+                  profilePhotoMenuLabels[2],
                   () async {
                     Navigator.pop(ctx);
-                    await _profileService.removePhoto();
+                    await _removePhoto(currentUrl);
                   },
                   isDestructive: true,
                 ),
               _sheetOption(
-                  ctx, Icons.close, 'Cancel', () => Navigator.pop(ctx)),
+                ctx,
+                Icons.close,
+                profilePhotoMenuLabels[3],
+                () => Navigator.pop(ctx),
+              ),
             ],
           ),
         ),
@@ -146,6 +225,35 @@ class _ProfilePageState extends State<ProfilePage>
             child: StreamBuilder<DocumentSnapshot>(
               stream: _profileService.userStream(),
               builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.cloud_off_outlined,
+                            size: 46,
+                            color: AppColors.mutedText,
+                          ),
+                          const SizedBox(height: 12),
+                          const Text(
+                            'Unable to load your profile. Check your connection.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: AppColors.mutedText),
+                          ),
+                          const SizedBox(height: 14),
+                          FilledButton.icon(
+                            onPressed: () => setState(() {}),
+                            icon: const Icon(Icons.refresh_rounded),
+                            label: const Text('Try Again'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
                 if (!snapshot.hasData) {
                   return const Center(child: CircularProgressIndicator());
                 }
@@ -191,6 +299,9 @@ class _ProfilePageState extends State<ProfilePage>
                         fullName: fullName,
                         email: email,
                         photoUrl: photoUrl,
+                        photoRevision: _photoRevision,
+                        pendingPhotoPath: _pendingPhotoPath,
+                        photoBusy: _photoBusy,
                         totalScans: totalScans,
                         onPhotoTap: () => _showPhotoSheet(photoUrl),
                       ),
@@ -326,6 +437,9 @@ class _ProfileHeaderCard extends StatelessWidget {
     required this.fullName,
     required this.email,
     required this.photoUrl,
+    required this.photoRevision,
+    required this.pendingPhotoPath,
+    required this.photoBusy,
     required this.totalScans,
     required this.onPhotoTap,
   });
@@ -333,6 +447,9 @@ class _ProfileHeaderCard extends StatelessWidget {
   final String fullName;
   final String email;
   final String? photoUrl;
+  final int photoRevision;
+  final String? pendingPhotoPath;
+  final bool photoBusy;
   final int totalScans;
   final VoidCallback onPhotoTap;
 
@@ -361,16 +478,25 @@ class _ProfileHeaderCard extends StatelessWidget {
                 children: [
                   ClipRRect(
                     borderRadius: BorderRadius.circular(20),
-                    child: photoUrl != null && photoUrl!.isNotEmpty
-                        ? CachedNetworkImage(
-                            imageUrl: photoUrl!,
+                    child: pendingPhotoPath != null
+                        ? Image.file(
+                            File(pendingPhotoPath!),
                             width: 88,
                             height: 88,
                             fit: BoxFit.cover,
-                            placeholder: (_, __) => _defaultAvatar(),
-                            errorWidget: (_, __, ___) => _defaultAvatar(),
+                            errorBuilder: (_, __, ___) => _defaultAvatar(),
                           )
-                        : _defaultAvatar(),
+                        : photoUrl != null && photoUrl!.isNotEmpty
+                            ? CachedNetworkImage(
+                                key: ValueKey('$photoUrl-$photoRevision'),
+                                imageUrl: photoUrl!,
+                                width: 88,
+                                height: 88,
+                                fit: BoxFit.cover,
+                                placeholder: (_, __) => _defaultAvatar(),
+                                errorWidget: (_, __, ___) => _defaultAvatar(),
+                              )
+                            : _defaultAvatar(),
                   ),
                   Positioned(
                     right: 0,
@@ -389,6 +515,25 @@ class _ProfileHeaderCard extends StatelessWidget {
                       ),
                     ),
                   ),
+                  if (photoBusy)
+                    Positioned.fill(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.28),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Center(
+                          child: SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.5,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -562,16 +707,28 @@ class _ProfileInfoCardState extends State<_ProfileInfoCard> {
                           return;
                         }
                         setState(() => _saving = true);
-                        await widget.onSave(
-                          _name.text.trim(),
-                          _contact.text.trim(),
-                          _location.text.trim(),
-                        );
-                        if (mounted) {
-                          setState(() {
-                            _saving = false;
-                            _editing = false;
-                          });
+                        try {
+                          await widget.onSave(
+                            _name.text.trim(),
+                            _contact.text.trim(),
+                            _location.text.trim(),
+                          );
+                          if (context.mounted) {
+                            setState(() => _editing = false);
+                          }
+                        } catch (_) {
+                          if (context.mounted) {
+                            PlantivaFeedback.show(
+                              context,
+                              message:
+                                  'Profile could not be saved. Check your connection.',
+                              type: PlantivaFeedbackType.error,
+                            );
+                          }
+                        } finally {
+                          if (context.mounted) {
+                            setState(() => _saving = false);
+                          }
                         }
                       },
                 child: _saving

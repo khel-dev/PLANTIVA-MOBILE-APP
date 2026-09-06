@@ -66,16 +66,31 @@ class _RecentScanCardState extends State<RecentScanCard>
       ),
     );
     if (ok == true && mounted) {
-      await ScanHistoryService.deleteScan(
-        widget.scan.id,
-        imageUrl: widget.scan.imageUrl,
-        imagePath: widget.scan.imagePath,
-      );
-      if (mounted) {
+      try {
+        await ScanHistoryService.deleteScan(
+          widget.scan.id,
+          imageUrl: widget.scan.imageUrl,
+          imagePath: widget.scan.imagePath,
+        );
+        if (!mounted) return;
         PlantivaFeedback.show(
           context,
           message: 'Scan deleted successfully.',
           type: PlantivaFeedbackType.success,
+        );
+      } on ScanPersistenceException catch (error) {
+        if (!mounted) return;
+        PlantivaFeedback.show(
+          context,
+          message: error.userMessage,
+          type: PlantivaFeedbackType.error,
+        );
+      } catch (_) {
+        if (!mounted) return;
+        PlantivaFeedback.show(
+          context,
+          message: 'Scan could not be deleted. Please try again.',
+          type: PlantivaFeedbackType.error,
         );
       }
     }

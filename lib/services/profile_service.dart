@@ -5,6 +5,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 
+String profilePhotoStoragePath(String uid) => 'users/$uid/profile.jpg';
+
 class ProfileService {
   final _auth = FirebaseAuth.instance;
   final _db = FirebaseFirestore.instance;
@@ -50,7 +52,10 @@ class ProfileService {
     }
   }
 
-  Future<String?> pickAndUploadPhoto(ImageSource source) async {
+  Future<String?> pickAndUploadPhoto(
+    ImageSource source, {
+    void Function(String path)? onImageSelected,
+  }) async {
     final id = uid;
     if (id == null) return null;
 
@@ -60,8 +65,9 @@ class ProfileService {
       imageQuality: 85,
     );
     if (picked == null) return null;
+    onImageSelected?.call(picked.path);
 
-    final ref = _storage.ref().child('users/$id/profile.jpg');
+    final ref = _storage.ref().child(profilePhotoStoragePath(id));
     await ref.putFile(File(picked.path));
     final url = await ref.getDownloadURL();
 
@@ -77,8 +83,10 @@ class ProfileService {
     final id = uid;
     if (id == null) return;
     try {
-      await _storage.ref().child('users/$id/profile.jpg').delete();
-    } catch (_) {}
+      await _storage.ref().child(profilePhotoStoragePath(id)).delete();
+    } on FirebaseException catch (error) {
+      if (error.code != 'object-not-found') rethrow;
+    }
     await _db.collection('users').doc(id).set(
       {
         'photoUrl': FieldValue.delete(),
@@ -154,7 +162,7 @@ class ProfileService {
     await user.reauthenticateWithCredential(cred);
 
     try {
-      await _storage.ref().child('users/$id/profile.jpg').delete();
+      await _storage.ref().child(profilePhotoStoragePath(id)).delete();
     } on FirebaseException catch (e) {
       if (e.code != 'object-not-found') {
         throw FirebaseAuthException(

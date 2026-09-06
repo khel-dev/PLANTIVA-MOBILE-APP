@@ -1,4 +1,30 @@
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+typedef DiseaseResourceLaunch = Future<bool> Function(Uri uri);
+
+class DiseaseGuideResourceLauncher {
+  DiseaseGuideResourceLauncher({DiseaseResourceLaunch? launch})
+      : _launch = launch ?? _launchExternally;
+
+  final DiseaseResourceLaunch _launch;
+
+  Future<bool> open(Uri? uri) async {
+    if (uri == null || (uri.scheme != 'https' && uri.scheme != 'http')) {
+      return false;
+    }
+
+    try {
+      return await _launch(uri);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static Future<bool> _launchExternally(Uri uri) {
+    return launchUrl(uri, mode: LaunchMode.externalApplication);
+  }
+}
 
 class DiseaseGuideService {
   static const _bookmarksKey = 'disease_guide_bookmarks';

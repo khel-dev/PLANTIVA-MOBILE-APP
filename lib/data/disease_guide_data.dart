@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_plantiva/models/disease_guide.dart';
 
-/// Educational disease content aligned with PLANTIVA's TFLite model classes.
 /// Educational disease content aligned with PLANTIVA's local image assets.
 class DiseaseGuideData {
   static const _fallback = 'assets/images/banana_landing.jpg';
@@ -34,13 +33,13 @@ class DiseaseGuideData {
     name: 'Banana Black Sigatoka Disease',
     shortName: 'Black Sigatoka',
     category: DiseaseCategory.fungal,
-    risk: DiseaseRisk.high,
     imageUrl: 'assets/images/black_sigatoka.jpg',
     fallbackAsset: _fallback,
+    modelLabel: 'Augmented Banana Black Sigatoka Disease',
     summary:
-        'A destructive fungal leaf spot disease that reduces photosynthesis and can cut banana yields by 50% or more.',
+        'A serious fungal leaf spot disease that damages green leaf area and can substantially reduce banana yield and fruit quality.',
     overview:
-        'Black Sigatoka (also called black leaf streak) is caused by the fungus Mycosphaerella fijiensis. It is one of the most economically important banana diseases worldwide, especially in humid tropical regions.',
+        'Black Sigatoka, also called black leaf streak, is caused by Pseudocercospora fijiensis (formerly Mycosphaerella fijiensis). It is distinct from Yellow Sigatoka and is favored by wet, humid conditions.',
     whyDangerous:
         'Infected leaves lose green tissue quickly, weakening the plant and reducing bunch size. Without control, entire plantations can become unproductive within seasons.',
     symptoms: [
@@ -83,55 +82,48 @@ class DiseaseGuideData {
       ),
     ],
     prevention: [
-      'Remove and destroy infected leaves promptly',
+      'Remove heavily affected leaf tissue using locally recommended sanitation practices',
       'Maintain spacing for good air circulation',
       'Use disease-free planting material',
-      'Apply preventive fungicide on a regular schedule',
-      'Monitor fields weekly during rainy season',
+      'Monitor fields regularly, especially during wet weather',
+      'Use fungicides only when locally recommended and follow the product label',
     ],
     treatments: [
       DiseaseTreatment(
         title: 'Initial management steps',
         steps: [
           'Identify and flag heavily infected mats',
-          'Remove the worst-affected leaves and burn or bury them',
-          'Consult local agriculture guidance before starting a fungicide program',
+          'Remove the worst-affected leaf tissue using safe field sanitation',
+          'Ask an agriculture technician to confirm the disease before starting a spray program',
         ],
       ),
       DiseaseTreatment(
         title: 'Ongoing management',
         steps: [
-          'Alternate systemic and contact fungicides as recommended locally',
           'Improve drainage in waterlogged areas',
-          'Track lesion counts on indicator plants',
+          'Keep records of new lesions and affected blocks',
+          'If fungicide is advised, rotate modes of action and follow local labels',
         ],
       ),
     ],
     videos: [
       DiseaseVideo(
-        title: 'Black Sigatoka Identification & Control',
-        channel: 'Agricultural Extension',
-        duration: 'Varies',
-        searchQuery: 'black sigatoka banana disease management FAO',
-      ),
-      DiseaseVideo(
-        title: 'Banana Leaf Spot Diseases Explained',
-        channel: 'Plant Pathology',
-        duration: 'Varies',
-        searchQuery: 'banana sigatoka disease farmer education',
+        title: 'Black Sigatoka identification and field information',
+        channel: 'Queensland Government',
+        url:
+            'https://www.business.qld.gov.au/industries/farms-fishing-forestry/agriculture/biosecurity/plants/priority-pest-disease/black-sigatoka-banana',
       ),
     ],
     quickFacts: [
       DiseaseQuickFact(label: 'Disease Type', value: 'Fungal'),
       DiseaseQuickFact(label: 'Spread Method', value: 'Wind & rain'),
-      DiseaseQuickFact(label: 'Risk Level', value: 'High'),
-      DiseaseQuickFact(label: 'Detectability', value: 'Moderate'),
-      DiseaseQuickFact(label: 'Economic Impact', value: 'Severe'),
+      DiseaseQuickFact(label: 'Main Site', value: 'Leaves'),
+      DiseaseQuickFact(label: 'AI Status', value: 'Scan supported'),
     ],
     farmerTips: [
       'Inspect the underside of leaves early in the morning when dew reveals streaks.',
       'Always disinfect cutting tools between plants.',
-      'Start fungicide sprays before the rainy season peaks.',
+      'Use scouting records and local technical advice before starting any spray program.',
     ],
     relatedIds: ['yellow_sigatoka', 'healthy_leaf'],
     searchKeywords: [
@@ -142,6 +134,17 @@ class DiseaseGuideData {
       'mycosphaerella',
       'leaf spot',
     ],
+    sources: [
+      DiseaseSource(
+        name: 'Queensland Government - Black sigatoka of banana',
+        url:
+            'https://www.business.qld.gov.au/industries/farms-fishing-forestry/agriculture/biosecurity/plants/priority-pest-disease/black-sigatoka-banana',
+      ),
+      DiseaseSource(
+        name: 'ProMusa - Black leaf streak',
+        url: 'https://www.promusa.org/Black%2Bleaf%2Bstreak',
+      ),
+    ],
   );
 
   static const yellowSigatoka = DiseaseGuideItem(
@@ -149,15 +152,15 @@ class DiseaseGuideData {
     name: 'Banana Yellow Sigatoka Disease',
     shortName: 'Yellow Sigatoka',
     category: DiseaseCategory.fungal,
-    risk: DiseaseRisk.moderate,
     imageUrl: 'assets/images/yellow_sigatoka.jpg',
     fallbackAsset: _fallback,
+    modelLabel: 'Augmented Banana Yellow Sigatoka Disease',
     summary:
-        'An early-stage fungal leaf disease with yellow streaks that often precedes Black Sigatoka in the field.',
+        'A fungal leaf spot disease that begins with yellow-green streaks and is distinct from Black Sigatoka.',
     overview:
-        'Yellow Sigatoka is caused by Mycosphaerella musicola. It is less aggressive than Black Sigatoka but still reduces leaf area and weakens plants if left unmanaged.',
+        'Yellow Sigatoka is caused by Pseudocercospora musae (formerly Mycosphaerella musicola). Its early yellow-green streaks are usually more visible on the upper leaf surface, while laboratory testing may be needed to distinguish mature lesions from related leaf spots.',
     whyDangerous:
-        'Yellow Sigatoka opens the door for more severe infections and weakens plants during critical growth stages, lowering yield and fruit quality.',
+        'When many lesions develop, usable green leaf area declines and fruit filling and quality can be affected. It should not be treated as an early stage of Black Sigatoka.',
     symptoms: [
       DiseaseSymptom(
         title: 'Yellow streaks',
@@ -189,7 +192,7 @@ class DiseaseGuideData {
       ),
     ],
     prevention: [
-      'Scout young leaves every 7–10 days',
+      'Inspect young and recently opened leaves regularly',
       'Remove infected leaf tissue early',
       'Avoid overhead irrigation where possible',
       'Maintain balanced plant nutrition',
@@ -198,30 +201,28 @@ class DiseaseGuideData {
       DiseaseTreatment(
         title: 'Field response',
         steps: [
-          'Apply recommended fungicide at first sign of streaks',
-          'Increase scouting frequency in humid weeks',
-          'Remove severely affected leaves',
+          'Record where yellow-green streaks and mature lesions occur',
+          'Increase scouting during humid or rainy periods',
+          'Seek local diagnosis before applying a disease-control product',
         ],
       ),
     ],
     videos: [
       DiseaseVideo(
-        title: 'Yellow vs Black Sigatoka Identification',
-        channel: 'Banana Research Network',
-        duration: 'Varies',
-        searchQuery: 'yellow sigatoka banana leaf disease',
+        title: 'Yellow Sigatoka field guide',
+        channel: 'Australian Banana Growers\' Council',
+        url: 'https://abgc.org.au/yellow-sigatoka/',
       ),
     ],
     quickFacts: [
       DiseaseQuickFact(label: 'Disease Type', value: 'Fungal'),
       DiseaseQuickFact(label: 'Spread Method', value: 'Wind & rain'),
-      DiseaseQuickFact(label: 'Risk Level', value: 'Moderate'),
-      DiseaseQuickFact(label: 'Detectability', value: 'Easy early'),
-      DiseaseQuickFact(label: 'Economic Impact', value: 'Moderate'),
+      DiseaseQuickFact(label: 'Main Site', value: 'Leaves'),
+      DiseaseQuickFact(label: 'AI Status', value: 'Scan supported'),
     ],
     farmerTips: [
-      'Yellow Sigatoka often appears on younger leaves first — check those carefully.',
-      'Controlling Yellow Sigatoka early helps prevent Black Sigatoka outbreaks.',
+      'Check the upper surface of younger leaves for early yellow-green streaks.',
+      'Do not assume every mature Sigatoka-like lesion can be identified by appearance alone.',
     ],
     relatedIds: ['black_sigatoka', 'healthy_leaf'],
     searchKeywords: [
@@ -231,6 +232,16 @@ class DiseaseGuideData {
       'fungal',
       'musicola'
     ],
+    sources: [
+      DiseaseSource(
+        name: 'Australian Banana Growers\' Council - Yellow Sigatoka',
+        url: 'https://abgc.org.au/yellow-sigatoka/',
+      ),
+      DiseaseSource(
+        name: 'CIRAD - The Sigatoka leaf disease complex in banana',
+        url: 'https://publications.cirad.fr/une_notice.php?dk=609616',
+      ),
+    ],
   );
 
   static const panama = DiseaseGuideItem(
@@ -238,9 +249,9 @@ class DiseaseGuideData {
     name: 'Banana Panama Disease',
     shortName: 'Panama Disease',
     category: DiseaseCategory.fungal,
-    risk: DiseaseRisk.high,
     imageUrl: 'assets/images/panama_disease.jpg',
     fallbackAsset: _fallback,
+    modelLabel: 'Augmented Banana Panama Disease',
     summary:
         'Fusarium wilt — a soil-borne fungal disease with no chemical cure that can wipe out entire banana fields.',
     overview:
@@ -309,24 +320,16 @@ class DiseaseGuideData {
     ],
     videos: [
       DiseaseVideo(
-        title: 'Panama Disease (Fusarium Wilt) Explained',
-        channel: 'FAO Plant Health',
-        duration: 'Varies',
-        searchQuery: 'panama disease fusarium wilt banana TR4',
-      ),
-      DiseaseVideo(
-        title: 'Protecting Banana Farms from Fusarium',
-        channel: 'University Extension',
-        duration: 'Varies',
-        searchQuery: 'banana fusarium wilt prevention farmer',
+        title: 'Fusarium TR4 basics and farm protection',
+        channel: 'Food and Agriculture Organization',
+        url: 'https://www.fao.org/tr4gn/tr4-basics/en/',
       ),
     ],
     quickFacts: [
       DiseaseQuickFact(label: 'Disease Type', value: 'Fungal wilt'),
       DiseaseQuickFact(label: 'Spread Method', value: 'Soil & tools'),
-      DiseaseQuickFact(label: 'Risk Level', value: 'High'),
-      DiseaseQuickFact(label: 'Detectability', value: 'Moderate'),
-      DiseaseQuickFact(label: 'Economic Impact', value: 'Catastrophic'),
+      DiseaseQuickFact(label: 'Main Site', value: 'Vascular tissue'),
+      DiseaseQuickFact(label: 'AI Status', value: 'Scan supported'),
     ],
     farmerTips: [
       'Never plant suckers from a field with unexplained wilting.',
@@ -341,6 +344,17 @@ class DiseaseGuideData {
       'yellowing',
       'vascular'
     ],
+    sources: [
+      DiseaseSource(
+        name: 'FAO TR4 Global Network - TR4 basics',
+        url: 'https://www.fao.org/tr4gn/tr4-basics/en/',
+      ),
+      DiseaseSource(
+        name: 'Queensland Government - Panama disease tropical race 4',
+        url:
+            'https://www.business.qld.gov.au/industries/farms-fishing-forestry/agriculture/biosecurity/plants/priority-pest-disease/panama-disease',
+      ),
+    ],
   );
 
   static const moko = DiseaseGuideItem(
@@ -348,9 +362,9 @@ class DiseaseGuideData {
     name: 'Banana Moko Disease',
     shortName: 'Moko Disease',
     category: DiseaseCategory.bacterial,
-    risk: DiseaseRisk.high,
     imageUrl: 'assets/images/moko_disease.jpg',
     fallbackAsset: _fallback,
+    modelLabel: 'Augmented Banana Moko Disease',
     summary:
         'A highly contagious bacterial wilt that causes rapid collapse of banana plants.',
     overview:
@@ -378,13 +392,14 @@ class DiseaseGuideData {
     causes: [
       DiseaseCause(
         title: 'Bacterial pathogen',
-        description: 'Ralstonia solanacearum infects through root wounds.',
+        description:
+            'Ralstonia bacteria invade vascular tissue and may enter through wounds or roots.',
         icon: Icons.biotech_outlined,
       ),
       DiseaseCause(
-        title: 'Insect vectors',
+        title: 'Short-distance spread',
         description:
-            'Beetles and other insects can carry bacteria between plants.',
+            'Flower-visiting insects, contaminated tools, soil, and water can move bacteria between plants.',
         icon: Icons.bug_report_outlined,
       ),
       DiseaseCause(
@@ -395,8 +410,8 @@ class DiseaseGuideData {
     ],
     prevention: [
       'Use only certified disease-free suckers',
-      'Disinfect tools with bleach solution between plants',
-      'Control insect vectors in the plantation',
+      'Clean and disinfect cutting tools between plants',
+      'Reduce avoidable wounds and follow local sanitation guidance',
       'Avoid wounding plants during field work',
     ],
     treatments: [
@@ -411,18 +426,17 @@ class DiseaseGuideData {
     ],
     videos: [
       DiseaseVideo(
-        title: 'Moko Disease: Recognition and Response',
-        channel: 'Plant Quarantine Service',
-        duration: 'Varies',
-        searchQuery: 'banana moko disease bacterial wilt',
+        title: 'Blood and Moko diseases of banana',
+        channel: 'Australian Department of Agriculture',
+        url:
+            'https://www.agriculture.gov.au/biosecurity-trade/pests-diseases-weeds/plant/identify/blood-and-moko-diseases-banana',
       ),
     ],
     quickFacts: [
       DiseaseQuickFact(label: 'Disease Type', value: 'Bacterial'),
       DiseaseQuickFact(label: 'Spread Method', value: 'Tools & insects'),
-      DiseaseQuickFact(label: 'Risk Level', value: 'High'),
-      DiseaseQuickFact(label: 'Detectability', value: 'Moderate'),
-      DiseaseQuickFact(label: 'Economic Impact', value: 'Severe'),
+      DiseaseQuickFact(label: 'Main Site', value: 'Vascular tissue'),
+      DiseaseQuickFact(label: 'AI Status', value: 'Scan supported'),
     ],
     farmerTips: [
       'Mark and isolate suspected plants while requesting professional confirmation.',
@@ -437,6 +451,17 @@ class DiseaseGuideData {
       'ooze',
       'collapse'
     ],
+    sources: [
+      DiseaseSource(
+        name: 'Australian Department of Agriculture - Blood and Moko diseases',
+        url:
+            'https://www.agriculture.gov.au/biosecurity-trade/pests-diseases-weeds/plant/identify/blood-and-moko-diseases-banana',
+      ),
+      DiseaseSource(
+        name: 'SENASICA - Moko disease of banana',
+        url: 'https://www.gob.mx/senasica/documentos/moko-del-platano',
+      ),
+    ],
   );
 
   static const bractMosaic = DiseaseGuideItem(
@@ -444,9 +469,9 @@ class DiseaseGuideData {
     name: 'Banana Bract Mosaic Virus Disease',
     shortName: 'Bract Mosaic Virus',
     category: DiseaseCategory.viral,
-    risk: DiseaseRisk.moderate,
     imageUrl: 'assets/images/bract_mosaic_virus.jpg',
     fallbackAsset: _fallback,
+    modelLabel: 'Augmented Banana Bract Mosaic Virus Disease',
     summary:
         'A virus disease causing mosaic patterns on bracts and leaves, spread primarily by aphids.',
     overview:
@@ -496,24 +521,23 @@ class DiseaseGuideData {
         steps: [
           'Remove and destroy infected plants',
           'Apply aphid management per local guidelines',
-          'Monitor neighboring plants for 4–6 weeks',
+          'Continue monitoring neighboring plants for symptoms',
         ],
       ),
     ],
     videos: [
       DiseaseVideo(
-        title: 'Banana Virus Diseases and Aphid Control',
-        channel: 'Crop Protection Network',
-        duration: 'Varies',
-        searchQuery: 'banana bract mosaic virus aphid control',
+        title: 'Banana bract mosaic virus identification',
+        channel: 'NSW Department of Primary Industries',
+        url:
+            'https://www.dpird.nsw.gov.au/dpi/biosecurity/plant-biosecurity/insect-pests-plant-diseases/banana-bract-mosaic-virus',
       ),
     ],
     quickFacts: [
       DiseaseQuickFact(label: 'Disease Type', value: 'Viral'),
       DiseaseQuickFact(label: 'Spread Method', value: 'Aphids'),
-      DiseaseQuickFact(label: 'Risk Level', value: 'Moderate'),
-      DiseaseQuickFact(label: 'Detectability', value: 'Moderate'),
-      DiseaseQuickFact(label: 'Economic Impact', value: 'Moderate'),
+      DiseaseQuickFact(label: 'Field Cure', value: 'None'),
+      DiseaseQuickFact(label: 'AI Status', value: 'Scan supported'),
     ],
     farmerTips: [
       'Mosaic patterns are easiest to spot in partial shade — inspect then.',
@@ -521,22 +545,35 @@ class DiseaseGuideData {
     ],
     relatedIds: ['insect_pest', 'healthy_leaf'],
     searchKeywords: ['mosaic', 'virus', 'bract', 'aphid', 'bbmv', 'pattern'],
+    sources: [
+      DiseaseSource(
+        name:
+            'NSW Department of Primary Industries - Banana bract mosaic virus',
+        url:
+            'https://www.dpird.nsw.gov.au/dpi/biosecurity/plant-biosecurity/insect-pests-plant-diseases/banana-bract-mosaic-virus',
+      ),
+      DiseaseSource(
+        name: 'DOST-PCAARRD - Banana bract mosaic disease R&D program',
+        url:
+            'https://www.pcaarrd.dost.gov.ph/index.php/quick-information-dispatch-qid-articles/dost-pcaarrd-launches-r-d-program-against-banana-bract-mosaic-disease',
+      ),
+    ],
   );
 
   static const insectPest = DiseaseGuideItem(
     id: 'insect_pest',
-    name: 'Banana Insect Pest Disease',
+    name: 'Banana Insect Pest Damage',
     shortName: 'Insect Pest Damage',
     category: DiseaseCategory.pest,
-    risk: DiseaseRisk.moderate,
     imageUrl: 'assets/images/insect_pest_damage.jpg',
     fallbackAsset: _fallback,
+    modelLabel: 'Augmented Banana Insect Pest Disease',
     summary:
-        'Physical damage from insects such as thrips, aphids, and weevils that weakens leaves and opens entry points for pathogens.',
+        'A broad scan category for visible banana-leaf damage that may be consistent with insect feeding.',
     overview:
-        'Insect pest damage is not a single disease but a category of injury caused by feeding insects. Damaged tissue stresses plants and can worsen disease outbreaks.',
+        'PLANTIVA detects visual damage consistent with its broad Insect Pest Damage category. It does not identify a specific insect species. Closer inspection of the plant, pest, and affected area may be needed before choosing management.',
     whyDangerous:
-        'Pest wounds create entry points for fungi and bacteria. Some insects also vector deadly viruses like Bract Mosaic.',
+        'Heavy feeding can reduce useful leaf area or plant vigor, while some banana pests can also spread plant pathogens. The likely pest must be confirmed before treatment.',
     symptoms: [
       DiseaseSymptom(
         title: 'Chewing damage',
@@ -556,8 +593,9 @@ class DiseaseGuideData {
     ],
     causes: [
       DiseaseCause(
-        title: 'Insect feeding',
-        description: 'Thrips, aphids, weevils, and beetles damage leaf tissue.',
+        title: 'Possible insect feeding',
+        description:
+            'Chewing, scraping, or sap-feeding insects are examples, but the scan result alone cannot name the pest.',
         icon: Icons.bug_report_outlined,
       ),
       DiseaseCause(
@@ -589,22 +627,22 @@ class DiseaseGuideData {
     ],
     videos: [
       DiseaseVideo(
-        title: 'Banana Insect Pests: ID and Management',
-        channel: 'Integrated Pest Management',
-        duration: 'Varies',
-        searchQuery: 'banana insect pest thrips aphid management',
+        title: 'Banana Integrated Pest Management learning course',
+        channel: 'DA Agricultural Training Institute',
+        url:
+            'https://ati2.da.gov.ph/ati-main/content/article/ladylyn-jose/new-e-learning-course-banana-integrated-pest-management',
       ),
     ],
     quickFacts: [
-      DiseaseQuickFact(label: 'Disease Type', value: 'Pest damage'),
-      DiseaseQuickFact(label: 'Spread Method', value: 'Insect movement'),
-      DiseaseQuickFact(label: 'Risk Level', value: 'Moderate'),
-      DiseaseQuickFact(label: 'Detectability', value: 'Easy'),
-      DiseaseQuickFact(label: 'Economic Impact', value: 'Variable'),
+      DiseaseQuickFact(label: 'Category Type', value: 'Broad pest damage'),
+      DiseaseQuickFact(label: 'Species Result', value: 'Not identified'),
+      DiseaseQuickFact(label: 'Next Step', value: 'Inspect the plant'),
+      DiseaseQuickFact(label: 'AI Status', value: 'Scan supported'),
     ],
     farmerTips: [
       'Check leaf undersides — most banana pests hide there.',
-      'Healthy plants tolerate minor pest damage better than stressed ones.',
+      'Photograph any insect, eggs, or tunneling separately for an agriculture technician.',
+      'Do not select a pesticide based only on the PLANTIVA category.',
     ],
     relatedIds: ['bract_mosaic', 'healthy_leaf'],
     searchKeywords: [
@@ -616,22 +654,35 @@ class DiseaseGuideData {
       'chewing',
       'holes'
     ],
+    sources: [
+      DiseaseSource(
+        name:
+            'DA Agricultural Training Institute - Banana Integrated Pest Management',
+        url:
+            'https://ati2.da.gov.ph/ati-main/content/article/ladylyn-jose/new-e-learning-course-banana-integrated-pest-management',
+      ),
+      DiseaseSource(
+        name: 'FAO World Banana Forum - Pesticide management and IPM',
+        url:
+            'https://www.fao.org/world-banana-forum/projects/good-practices/pesticide-management/en/',
+      ),
+    ],
   );
 
   static const healthyLeaf = DiseaseGuideItem(
     id: 'healthy_leaf',
-    name: 'Banana Healthy Leaf',
+    name: 'Healthy Banana Leaf',
     shortName: 'Healthy Leaf',
     category: DiseaseCategory.healthy,
-    risk: DiseaseRisk.low,
     imageUrl: 'assets/images/healthy_banana_leaf.jpg',
     fallbackAsset: _fallback,
+    modelLabel: 'Augmented Banana Healthy Leaf',
     summary:
-        'The baseline for PLANTIVA scans — vibrant green leaves without disease symptoms or pest damage.',
+        'A banana leaf with no obvious visual pattern from the seven disease or damage classes supported by the scanner.',
     overview:
-        'A healthy banana leaf shows uniform green coloration, intact margins, and no streaks, spots, or wilting. This is what farmers should aim to maintain across the plantation.',
+        'A healthy-looking banana leaf is generally green and functional without obvious disease lesions, strong mosaic patterns, or serious pest damage. A single image cannot confirm the health of roots, fruit, soil, or the whole mat, so routine field monitoring remains important.',
     whyDangerous:
-        'Healthy leaves are not dangerous — they represent your target outcome. Maintaining plant health protects yield and reduces management costs.',
+        'Healthy Leaf is not a disease diagnosis. It means the image did not show a reliable visual pattern for the disease and damage classes recognized by PLANTIVA.',
     symptoms: [
       DiseaseSymptom(
         title: 'Vibrant green color',
@@ -661,15 +712,16 @@ class DiseaseGuideData {
         icon: Icons.water,
       ),
       DiseaseCause(
-        title: 'Preventive care',
-        description: 'Regular scouting and early disease intervention.',
+        title: 'Regular monitoring',
+        description:
+            'Field observation helps farmers notice changes that one leaf image may not show.',
         icon: Icons.shield_outlined,
       ),
     ],
     prevention: [
-      'Continue weekly PLANTIVA leaf scanning',
+      'Continue regular whole-plant and field inspection',
       'Maintain field sanitation',
-      'Apply balanced fertilizer program',
+      'Base fertilizer decisions on local recommendations and soil needs',
       'Monitor for early disease signs on border plants',
       'Keep tools clean between plants',
     ],
@@ -677,34 +729,45 @@ class DiseaseGuideData {
       DiseaseTreatment(
         title: 'Maintaining health',
         steps: [
-          'Document healthy scans as your field baseline',
-          'Compare new scans against healthy reference photos',
-          'Reinforce good practices when health rate is high',
+          'Use healthy-looking scans as one observation in your field records',
+          'Compare changes over time while also checking the whole plant',
+          'Consult an agriculture technician if plants decline despite healthy-looking leaves',
         ],
       ),
     ],
     videos: [
       DiseaseVideo(
-        title: 'Best Practices for Healthy Banana Fields',
-        channel: 'Sustainable Agriculture',
-        duration: 'Varies',
-        searchQuery: 'healthy banana plantation best practices farmer',
+        title: 'Good agricultural practices for bananas',
+        channel: 'FAO World Banana Forum',
+        url:
+            'https://www.fao.org/world-banana-forum/projects/good-practices/good-agricultural-practices/en/',
       ),
     ],
     quickFacts: [
-      DiseaseQuickFact(label: 'Disease Type', value: 'Healthy reference'),
-      DiseaseQuickFact(label: 'Spread Method', value: 'N/A'),
-      DiseaseQuickFact(label: 'Risk Level', value: 'Low'),
-      DiseaseQuickFact(label: 'Detectability', value: 'Easy'),
-      DiseaseQuickFact(label: 'Economic Impact', value: 'Positive'),
+      DiseaseQuickFact(label: 'Category Type', value: 'Healthy reference'),
+      DiseaseQuickFact(label: 'Disease', value: 'No'),
+      DiseaseQuickFact(label: 'Scope', value: 'Visible leaf only'),
+      DiseaseQuickFact(label: 'AI Status', value: 'Scan supported'),
     ],
     farmerTips: [
       'Use healthy leaves as your comparison standard when scouting.',
-      'High healthy scan rates mean your management program is working.',
-      'Scan the same blocks regularly to catch changes early.',
+      'Do not spray fungicide only because a scan was classified as Healthy Leaf.',
+      'Check roots, pseudostem, fruit, and nearby plants when assessing crop health.',
     ],
     relatedIds: ['black_sigatoka', 'yellow_sigatoka'],
     searchKeywords: ['healthy', 'green', 'normal', 'baseline', 'no disease'],
+    sources: [
+      DiseaseSource(
+        name:
+            'FAO World Banana Forum - Good agricultural practices for bananas',
+        url:
+            'https://www.fao.org/world-banana-forum/projects/good-practices/good-agricultural-practices/en/',
+      ),
+      DiseaseSource(
+        name: 'Philippine Bureau of Plant Industry - Banana Production Guide',
+        url: 'https://buplant.da.gov.ph/production-guide/',
+      ),
+    ],
   );
 
   static const bunchyTop = DiseaseGuideItem(
@@ -712,7 +775,6 @@ class DiseaseGuideData {
     name: 'Banana Bunchy Top Disease',
     shortName: 'Bunchy Top',
     category: DiseaseCategory.viral,
-    risk: DiseaseRisk.high,
     imageUrl: 'assets/images/banana_bunchy_top.jpg',
     fallbackAsset: _fallback,
     scientificName: 'Banana bunchy top virus (BBTV)',
@@ -735,7 +797,7 @@ class DiseaseGuideData {
         title: 'Bunched leaves',
         description:
             'Advanced plants develop narrow, upright, progressively shorter leaves that form a rosette.',
-        icon: Icons.local_florist_outlined,
+        icon: Icons.eco_outlined,
       ),
       DiseaseSymptom(
         title: 'Stunted growth',
@@ -785,10 +847,10 @@ class DiseaseGuideData {
     ],
     videos: [
       DiseaseVideo(
-        title: 'Banana Bunchy Top Disease Philippines',
-        channel: 'Search result',
-        duration: 'Varies',
-        searchQuery: 'banana bunchy top disease Philippines',
+        title: 'Banana bunchy top identification and spread',
+        channel: 'Queensland Government',
+        url:
+            'https://www.business.qld.gov.au/industries/farms-fishing-forestry/agriculture/biosecurity/plants/priority-pest-disease/banana-bunchy-top',
       ),
     ],
     quickFacts: [
@@ -796,8 +858,7 @@ class DiseaseGuideData {
       DiseaseQuickFact(label: 'Causal Agent', value: 'BBTV'),
       DiseaseQuickFact(label: 'Spread Method', value: 'Banana aphid'),
       DiseaseQuickFact(label: 'Planting Risk', value: 'Infected suckers'),
-      DiseaseQuickFact(label: 'Risk Level', value: 'High'),
-      DiseaseQuickFact(label: 'AI Status', value: 'AI detectable'),
+      DiseaseQuickFact(label: 'AI Status', value: 'Scan supported'),
     ],
     farmerTips: [
       'Do not use suckers from plants with bunching or severe stunting.',
@@ -814,9 +875,16 @@ class DiseaseGuideData {
       'rosette banana',
     ],
     sources: [
-      'Business Queensland - Banana bunchy top',
-      'CGIAR / Bioversity International - Guide to Banana Bunchy Top Disease',
-      'Plant Disease / PMC - Banana bunchy top virus research in the Philippines',
+      DiseaseSource(
+        name: 'Queensland Government - Banana bunchy top virus',
+        url:
+            'https://www.business.qld.gov.au/industries/farms-fishing-forestry/agriculture/biosecurity/plants/priority-pest-disease/banana-bunchy-top',
+      ),
+      DiseaseSource(
+        name: 'DOST-PCAARRD - GAP for Lakatan and Cardaba',
+        url:
+            'https://www.pcaarrd.dost.gov.ph/index.php/quick-information-dispatch-qid-articles/good-agricultural-practices-gap-reduces-pests-and-diseases-of-lakatan-and-cardaba',
+      ),
     ],
   );
 
@@ -825,7 +893,6 @@ class DiseaseGuideData {
     name: 'Banana Anthracnose',
     shortName: 'Anthracnose',
     category: DiseaseCategory.fungal,
-    risk: DiseaseRisk.moderate,
     imageUrl: 'assets/images/banana_anthracnose.jpg',
     fallbackAsset: _fallback,
     scientificName: 'Colletotrichum musae and related Colletotrichum species',
@@ -895,17 +962,16 @@ class DiseaseGuideData {
     ],
     videos: [
       DiseaseVideo(
-        title: 'Banana Anthracnose Philippines',
-        channel: 'Search result',
-        duration: 'Varies',
-        searchQuery: 'banana anthracnose Philippines',
+        title: 'Banana anthracnose symptoms and postharvest information',
+        channel: 'Tamil Nadu Agricultural University',
+        url:
+            'https://agritech.tnau.ac.in/crop_protection/crop_diseases_postharvest_banana_1.html',
       ),
     ],
     quickFacts: [
       DiseaseQuickFact(label: 'Disease Type', value: 'Fungal'),
       DiseaseQuickFact(label: 'Causal Agent', value: 'Colletotrichum spp.'),
       DiseaseQuickFact(label: 'Common Site', value: 'Fruit'),
-      DiseaseQuickFact(label: 'Risk Level', value: 'Moderate'),
       DiseaseQuickFact(label: 'AI Status', value: 'Guide only'),
     ],
     farmerTips: [
@@ -920,9 +986,15 @@ class DiseaseGuideData {
       'banana black spots',
     ],
     sources: [
-      'TNAU Agritech Portal - Banana postharvest anthracnose',
-      'Plantwise Knowledge Bank - Anthracnose on banana',
-      'Philippine Center for Postharvest Development and Mechanization - banana postharvest disease information',
+      DiseaseSource(
+        name: 'TNAU Agritech Portal - Banana postharvest anthracnose',
+        url:
+            'https://agritech.tnau.ac.in/crop_protection/crop_diseases_postharvest_banana_1.html',
+      ),
+      DiseaseSource(
+        name: 'UC Davis Postharvest Center - Banana produce facts',
+        url: 'https://postharvest.ucdavis.edu/produce-facts-sheets/banana',
+      ),
     ],
   );
 
@@ -931,7 +1003,6 @@ class DiseaseGuideData {
     name: 'Banana Freckle',
     shortName: 'Banana Freckle',
     category: DiseaseCategory.fungal,
-    risk: DiseaseRisk.moderate,
     imageUrl: 'assets/images/banana_freckle.jpg',
     fallbackAsset: _fallback,
     scientificName: 'Phyllosticta spp. including Phyllosticta cavendishii',
@@ -995,10 +1066,10 @@ class DiseaseGuideData {
     ],
     videos: [
       DiseaseVideo(
-        title: 'Banana Freckle Philippines',
-        channel: 'Search result',
-        duration: 'Varies',
-        searchQuery: 'banana freckle Philippines',
+        title: 'Banana freckle identification and biosecurity',
+        channel: 'Queensland Government',
+        url:
+            'https://www.business.qld.gov.au/industries/farms-fishing-forestry/agriculture/biosecurity/plants/priority-pest-disease/banana-freckle',
       ),
     ],
     quickFacts: [
@@ -1006,7 +1077,6 @@ class DiseaseGuideData {
       DiseaseQuickFact(label: 'Causal Agent', value: 'Phyllosticta spp.'),
       DiseaseQuickFact(label: 'Common Sites', value: 'Leaves and fruit'),
       DiseaseQuickFact(label: 'Reported Varieties', value: 'Lakatan, Cardaba'),
-      DiseaseQuickFact(label: 'Risk Level', value: 'Moderate'),
       DiseaseQuickFact(label: 'AI Status', value: 'Guide only'),
     ],
     farmerTips: [
@@ -1022,9 +1092,16 @@ class DiseaseGuideData {
       'cardaba freckle',
     ],
     sources: [
-      'DOST-PCAARRD - Good agricultural practices reduces pests and diseases of Lakatan and Cardaba',
-      'Business Queensland - Freckle disease of banana',
-      'International Plant Protection Convention - Phyllosticta cavendishii banana freckle pest report',
+      DiseaseSource(
+        name: 'DOST-PCAARRD - GAP for Lakatan and Cardaba',
+        url:
+            'https://www.pcaarrd.dost.gov.ph/index.php/quick-information-dispatch-qid-articles/good-agricultural-practices-gap-reduces-pests-and-diseases-of-lakatan-and-cardaba',
+      ),
+      DiseaseSource(
+        name: 'Queensland Government - Freckle disease of banana',
+        url:
+            'https://www.business.qld.gov.au/industries/farms-fishing-forestry/agriculture/biosecurity/plants/priority-pest-disease/banana-freckle',
+      ),
     ],
   );
 
@@ -1033,7 +1110,6 @@ class DiseaseGuideData {
     name: 'Banana Crown Rot',
     shortName: 'Crown Rot',
     category: DiseaseCategory.postharvest,
-    risk: DiseaseRisk.moderate,
     imageUrl: 'assets/images/banana_crown_rot.jpg',
     fallbackAsset: _fallback,
     scientificName: 'Complex of postharvest fungal pathogens',
@@ -1091,16 +1167,14 @@ class DiseaseGuideData {
     ],
     videos: [
       DiseaseVideo(
-        title: 'Banana Crown Rot Postharvest',
-        channel: 'Search result',
-        duration: 'Varies',
-        searchQuery: 'banana crown rot banana postharvest',
+        title: 'Banana postharvest disorders and crown rot',
+        channel: 'UC Davis Postharvest Center',
+        url: 'https://postharvest.ucdavis.edu/produce-facts-sheets/banana',
       ),
     ],
     quickFacts: [
       DiseaseQuickFact(label: 'Disease Type', value: 'Postharvest fungal rot'),
       DiseaseQuickFact(label: 'Common Site', value: 'Crown of banana hands'),
-      DiseaseQuickFact(label: 'Risk Level', value: 'Moderate'),
       DiseaseQuickFact(label: 'AI Status', value: 'Guide only'),
     ],
     farmerTips: [
@@ -1115,9 +1189,15 @@ class DiseaseGuideData {
       'banana hand rot',
     ],
     sources: [
-      'Philippine Center for Postharvest Development and Mechanization (PhilMech) - banana postharvest disease information',
-      'ITFNet / PhilMech report - organic solution research for banana crown rot',
-      'Plant Pathology - crown rot disease complex in banana',
+      DiseaseSource(
+        name: 'UC Davis Postharvest Center - Banana produce facts',
+        url: 'https://postharvest.ucdavis.edu/produce-facts-sheets/banana',
+      ),
+      DiseaseSource(
+        name: 'TNAU Agritech Portal - Banana crown rot',
+        url:
+            'https://agritech.tnau.ac.in/crop_protection/crop_diseases_postharvest_banana_3.html',
+      ),
     ],
   );
 
@@ -1126,7 +1206,6 @@ class DiseaseGuideData {
     name: 'Banana Weevil Borer',
     shortName: 'Weevil Borer',
     category: DiseaseCategory.pest,
-    risk: DiseaseRisk.moderate,
     imageUrl: 'assets/images/banana_weevil_borer.jpg',
     fallbackAsset: _fallback,
     scientificName: 'Cosmopolites sordidus',
@@ -1185,17 +1264,16 @@ class DiseaseGuideData {
     ],
     videos: [
       DiseaseVideo(
-        title: 'Banana Weevil Borer Philippines',
-        channel: 'Search result',
-        duration: 'Varies',
-        searchQuery: 'banana weevil borer Philippines',
+        title: 'Banana weevil borer identification and management',
+        channel: 'Queensland Government',
+        url:
+            'https://www.business.qld.gov.au/industries/farms-fishing-forestry/agriculture/biosecurity/plants/insects/horticultural/banana-weevil-borer',
       ),
     ],
     quickFacts: [
       DiseaseQuickFact(label: 'Problem Type', value: 'Insect pest'),
       DiseaseQuickFact(label: 'Pest Name', value: 'Cosmopolites sordidus'),
       DiseaseQuickFact(label: 'Main Damage', value: 'Corm tunneling'),
-      DiseaseQuickFact(label: 'Risk Level', value: 'Moderate'),
       DiseaseQuickFact(label: 'Management', value: 'IPM and sanitation'),
       DiseaseQuickFact(label: 'AI Status', value: 'Guide only'),
     ],
@@ -1212,9 +1290,17 @@ class DiseaseGuideData {
       'corm weevil',
     ],
     sources: [
-      'DA Agricultural Training Institute banana IPM material',
-      'Business Queensland - Banana weevil borer',
-      'Plantwise Knowledge Bank - Banana Weevil: Cosmopolites sordidus',
+      DiseaseSource(
+        name: 'Queensland Government - Banana weevil borer',
+        url:
+            'https://www.business.qld.gov.au/industries/farms-fishing-forestry/agriculture/biosecurity/plants/insects/horticultural/banana-weevil-borer',
+      ),
+      DiseaseSource(
+        name:
+            'DA Agricultural Training Institute - Banana Integrated Pest Management',
+        url:
+            'https://ati2.da.gov.ph/ati-main/content/article/ladylyn-jose/new-e-learning-course-banana-integrated-pest-management',
+      ),
     ],
   );
 }

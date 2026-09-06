@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_plantiva/config/app_colors.dart';
+import 'package:flutter_plantiva/data/treatment_guidance_data.dart';
+import 'package:flutter_plantiva/models/disease_guide.dart';
+import 'package:flutter_plantiva/models/treatment_guidance.dart';
 import 'package:flutter_plantiva/screens/disease_guide/disease_guide_screen.dart';
 import 'package:flutter_plantiva/screens/homepage.dart';
 import 'package:flutter_plantiva/screens/scanner_screen.dart';
+import 'package:flutter_plantiva/services/disease_guide_service.dart';
+import 'package:flutter_plantiva/utils/plantiva_feedback.dart';
 import 'package:flutter_plantiva/widgets/scan_image_widget.dart';
 
 class TreatmentRecommendationScreen extends StatefulWidget {
@@ -17,10 +22,14 @@ class TreatmentRecommendationScreen extends StatefulWidget {
     this.imageUrl,
     this.imageBase64,
     this.savedScanId,
+    this.resourceLauncher,
   });
 
   final String label;
   final String confidence;
+
+  // Preserved for route compatibility. Recognized classes use reviewed local
+  // guidance so historical Firestore text cannot override current safety copy.
   final String summary;
   final String recommendation;
   final bool isHealthy;
@@ -28,6 +37,7 @@ class TreatmentRecommendationScreen extends StatefulWidget {
   final String? imageUrl;
   final String? imageBase64;
   final String? savedScanId;
+  final DiseaseGuideResourceLauncher? resourceLauncher;
 
   @override
   State<TreatmentRecommendationScreen> createState() =>
@@ -40,10 +50,15 @@ class _TreatmentRecommendationScreenState
   late final AnimationController _intro;
   late final Animation<double> _fade;
   late final Animation<Offset> _slide;
+  late final TreatmentGuidance _guidance;
+  late final DiseaseGuideResourceLauncher _resourceLauncher;
 
   @override
   void initState() {
     super.initState();
+    _guidance = TreatmentGuidanceData.resolve(widget.label);
+    _resourceLauncher =
+        widget.resourceLauncher ?? DiseaseGuideResourceLauncher();
     _intro = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 520),
@@ -62,57 +77,15 @@ class _TreatmentRecommendationScreenState
     super.dispose();
   }
 
-  List<String> get _careTips {
-    final label = widget.label.toLowerCase();
-    if (widget.isHealthy) {
-      return const [
-        'Continue weekly scouting and keep this result as a healthy reference.',
-        'Maintain clean tools, balanced fertilization, and good drainage.',
-        'Scan again after heavy rain or when new leaf symptoms appear.',
-      ];
-    }
-    if (label.contains('panama') || label.contains('moko')) {
-      return const [
-        'Avoid moving soil, tools, or planting material from the affected area.',
-        'Mark and isolate the suspected plant or mat while waiting for confirmation.',
-        'Ask the Municipal Agriculture Office or an agriculture technician before removing plants.',
-      ];
-    }
-    if (label.contains('sigatoka')) {
-      return const [
-        'Remove severely infected leaves only when safe and practical.',
-        'Improve spacing and airflow so leaves dry faster after rain.',
-        'Use locally approved products only as directed on the product label.',
-      ];
-    }
-    if (label.contains('mosaic') ||
-        label.contains('virus') ||
-        label.contains('bunchy top')) {
-      return const [
-        'Do not use suspected infected plants as planting material.',
-        'Monitor nearby plants for mosaic patterns or abnormal streaking.',
-        'Manage aphids and other sap-feeding insects using local IPM guidance.',
-      ];
-    }
-    if (label.contains('insect')) {
-      return const [
-        'Inspect the underside of leaves for insects, eggs, or feeding marks.',
-        'Use integrated pest management before applying any pesticide.',
-        'Follow product label instructions and local agriculture guidance.',
-      ];
-    }
-    return const [
-      'Document the symptoms and scan date.',
-      'Keep tools clean between plants.',
-      'Consult an agriculture technician if symptoms spread.',
-    ];
+  Future<void> _openSource(DiseaseSource source) async {
+    final opened = await _resourceLauncher.open(source.uri);
+    if (!mounted || opened) return;
+    PlantivaFeedback.show(
+      context,
+      message: 'Unable to open this source. Check your internet connection.',
+      type: PlantivaFeedbackType.error,
+    );
   }
-
-  List<String> get _expertSignals => const [
-        'Symptoms are spreading to nearby banana plants.',
-        'The plant shows wilting, internal browning, or rapid collapse.',
-        'You are unsure which treatment is safe for your farm conditions.',
-      ];
 
   void _openDiseaseGuide() {
     Navigator.of(context).push(
@@ -147,117 +120,155 @@ class _TreatmentRecommendationScreenState
   Widget build(BuildContext context) {
     final confidenceValue =
         double.tryParse(widget.confidence.replaceAll('%', '')) ?? 0;
+    final isHealthy = _guidance.isHealthy;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFE7F5E9),
+      backgroundColor: const Color(0xFFF7F6F1),
       body: SafeArea(
         child: FadeTransition(
           opacity: _fade,
           child: SlideTransition(
             position: _slide,
             child: CustomScrollView(
+              key: const Key('treatment-guidance-scroll'),
               slivers: [
                 SliverToBoxAdapter(
                   child: _Header(
-                    label: widget.label,
+                    label: _guidance.normalizedClass,
                     imagePath: widget.imagePath,
                     imageUrl: widget.imageUrl,
                     imageBase64: widget.imageBase64,
                   ),
                 ),
                 SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
                   sliver: SliverList(
-                    delegate: SliverChildListDelegate(
-                      [
-                        _MetricCard(
-                          title: 'AI Classification Confidence',
-                          value: '${confidenceValue.toStringAsFixed(0)}%',
-                          icon: Icons.speed_rounded,
-                          color: AppColors.green,
-                          progress: confidenceValue / 100,
+                    delegate: SliverChildListDelegate([
+                      Text(
+                        _guidance.title,
+                        style: const TextStyle(
+                          color: Color(0xFF173B29),
+                          fontSize: 23,
+                          fontWeight: FontWeight.w800,
                         ),
-                        const SizedBox(height: 8),
-                        const Text(
-                          'This score reflects the model\'s class match. It does not measure disease severity.',
+                      ),
+                      const SizedBox(height: 8),
+                      Text(_guidance.summary, style: _body),
+                      if (_guidance.isBroadCategory) ...[
+                        const SizedBox(height: 14),
+                        const _NoticeCard(
+                          icon: Icons.manage_search_rounded,
+                          title: 'Broad damage category',
+                          message:
+                              'The exact pest species was not identified. Inspect and confirm the pest before selecting a targeted control.',
+                        ),
+                      ],
+                      const SizedBox(height: 14),
+                      _MetricCard(
+                        value: '${confidenceValue.toStringAsFixed(0)}%',
+                        progress: confidenceValue / 100,
+                      ),
+                      const Padding(
+                        padding: EdgeInsets.fromLTRB(2, 8, 2, 14),
+                        child: Text(
+                          'Classification confidence shows the model match. It does not measure disease severity or change this guidance.',
                           style: TextStyle(
                             color: AppColors.mutedText,
                             fontSize: 12,
                             height: 1.4,
                           ),
                         ),
+                      ),
+                      _GuidanceSection(
+                        title:
+                            isHealthy ? 'Keep Monitoring' : 'Immediate Actions',
+                        icon: isHealthy
+                            ? Icons.visibility_outlined
+                            : Icons.flag_outlined,
+                        items: _guidance.immediateActions,
+                      ),
+                      _GuidanceSection(
+                        title: isHealthy ? 'Good Practices' : 'Management',
+                        icon: isHealthy
+                            ? Icons.eco_outlined
+                            : Icons.agriculture_outlined,
+                        items: _guidance.management,
+                      ),
+                      _GuidanceSection(
+                        title: 'Prevention',
+                        icon: Icons.shield_outlined,
+                        items: _guidance.prevention,
+                      ),
+                      _GuidanceSection(
+                        title: isHealthy
+                            ? 'When to Seek Advice'
+                            : 'When to Seek Help',
+                        icon: Icons.support_agent_outlined,
+                        items: _guidance.whenToSeekHelp,
+                      ),
+                      _NoticeCard(
+                        icon: Icons.info_outline_rounded,
+                        title: 'Important Note',
+                        message: _guidance.importantNote,
+                      ),
+                      if (_guidance.sources.isNotEmpty) ...[
                         const SizedBox(height: 14),
-                        _SectionCard(
-                          title: widget.isHealthy
-                              ? 'Monitoring and Care Guidance'
-                              : 'Management and Care Guidance',
-                          icon: widget.isHealthy
-                              ? Icons.eco_outlined
-                              : Icons.medical_services_outlined,
-                          child: Text(widget.recommendation, style: _body),
-                        ),
-                        _SectionCard(
-                          title: 'Prevention and Care Tips',
-                          icon: Icons.shield_outlined,
-                          child: _BulletList(items: _careTips),
-                        ),
-                        _SectionCard(
-                          title: 'Farmer-Friendly Explanation',
-                          icon: Icons.eco_outlined,
-                          child: Text(widget.summary, style: _body),
-                        ),
-                        _SectionCard(
-                          title: 'When to Consult an Expert',
-                          icon: Icons.support_agent_outlined,
-                          child: _BulletList(items: _expertSignals),
-                        ),
-                        _SectionCard(
-                          title: 'Saved Scan',
-                          icon: widget.savedScanId == null
-                              ? Icons.bookmark_border
-                              : Icons.bookmark_added,
-                          child: Text(
-                            widget.savedScanId == null
-                                ? 'This recommendation can still be used, but the scan was not confirmed as saved.'
-                                : 'This classification result is saved in your scan history.',
-                            style: _body,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: OutlinedButton.icon(
-                                onPressed: _scanAgain,
-                                icon: const Icon(Icons.camera_alt_outlined),
-                                label: const Text('Scan Again'),
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: ElevatedButton.icon(
-                                onPressed: _backHome,
-                                icon: const Icon(Icons.home_outlined),
-                                label: const Text('Back Home'),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton.icon(
-                            onPressed: _openDiseaseGuide,
-                            icon: const Icon(Icons.menu_book_outlined),
-                            label: const Text('Open Disease Guide'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.green,
-                              foregroundColor: Colors.white,
-                            ),
-                          ),
+                        _SourcesCard(
+                          sources: _guidance.sources,
+                          onOpen: _openSource,
                         ),
                       ],
-                    ),
+                      const SizedBox(height: 14),
+                      _SavedStatus(savedScanId: widget.savedScanId),
+                      const SizedBox(height: 14),
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          final narrow = constraints.maxWidth < 350;
+                          final buttons = [
+                            OutlinedButton.icon(
+                              onPressed: _scanAgain,
+                              icon: const Icon(Icons.camera_alt_outlined),
+                              label: const Text('Scan Again'),
+                            ),
+                            ElevatedButton.icon(
+                              onPressed: _backHome,
+                              icon: const Icon(Icons.home_outlined),
+                              label: const Text('Back Home'),
+                            ),
+                          ];
+                          if (narrow) {
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                buttons[0],
+                                const SizedBox(height: 10),
+                                buttons[1],
+                              ],
+                            );
+                          }
+                          return Row(
+                            children: [
+                              Expanded(child: buttons[0]),
+                              const SizedBox(width: 10),
+                              Expanded(child: buttons[1]),
+                            ],
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 10),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: _openDiseaseGuide,
+                          icon: const Icon(Icons.menu_book_outlined),
+                          label: const Text('Open Disease Guide'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.green,
+                            foregroundColor: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ]),
                   ),
                 ),
               ],
@@ -290,156 +301,156 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        ScanImageWidget(
-          imagePath: imagePath,
-          imageUrl: imageUrl,
-          imageBase64: imageBase64,
-          width: double.infinity,
-          height: 310,
-          borderRadius: 0,
-        ),
-        Container(
-          height: 310,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Colors.black.withValues(alpha: 0.05),
-                Colors.black.withValues(alpha: 0.74),
+    final width = MediaQuery.sizeOf(context).width;
+    final height = (width * 0.72).clamp(225.0, 300.0);
+    return SizedBox(
+      height: height,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          ScanImageWidget(
+            imagePath: imagePath,
+            imageUrl: imageUrl,
+            imageBase64: imageBase64,
+            width: width,
+            height: height,
+            borderRadius: 0,
+          ),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.black.withValues(alpha: 0.05),
+                  Colors.black.withValues(alpha: 0.76),
+                ],
+              ),
+            ),
+          ),
+          Positioned(
+            top: 10,
+            left: 8,
+            child: IconButton.filledTonal(
+              tooltip: 'Back',
+              style: IconButton.styleFrom(
+                backgroundColor: Colors.white.withValues(alpha: 0.92),
+              ),
+              onPressed: () => Navigator.pop(context),
+              icon: const Icon(Icons.arrow_back, color: Colors.black87),
+            ),
+          ),
+          Positioned(
+            left: 18,
+            right: 18,
+            bottom: 18,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: AppColors.green.withValues(alpha: 0.96),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Text(
+                    'IMAGE-BASED SCREENING',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 9),
+                Text(
+                  label,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: width < 350 ? 22 : 26,
+                    fontWeight: FontWeight.w900,
+                    height: 1.08,
+                  ),
+                ),
+                const SizedBox(height: 5),
+                const Text(
+                  'Reviewed educational guidance for banana farmers',
+                  maxLines: 2,
+                  style: TextStyle(color: Colors.white70, fontSize: 13),
+                ),
               ],
             ),
           ),
-        ),
-        Positioned(
-          top: 10,
-          left: 8,
-          child: IconButton.filledTonal(
-            style: IconButton.styleFrom(
-              backgroundColor: Colors.white.withValues(alpha: 0.9),
-            ),
-            onPressed: () => Navigator.pop(context),
-            icon: const Icon(Icons.arrow_back, color: Colors.black87),
-          ),
-        ),
-        Positioned(
-          left: 18,
-          right: 18,
-          bottom: 20,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: AppColors.green.withValues(alpha: 0.96),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Text(
-                  'IMAGE-BASED SCREENING',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                label,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 26,
-                  fontWeight: FontWeight.w900,
-                  height: 1.08,
-                ),
-              ),
-              const SizedBox(height: 6),
-              const Text(
-                'Educational management guidance for banana farmers',
-                style: TextStyle(color: Colors.white70, fontSize: 14),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _MetricCard extends StatelessWidget {
-  const _MetricCard({
-    required this.title,
-    required this.value,
-    required this.icon,
-    required this.color,
-    this.progress,
-  });
-
-  final String title;
-  final String value;
-  final IconData icon;
-  final Color color;
-  final double? progress;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFD0E9D4)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: color),
-          const SizedBox(height: 10),
-          Text(
-            title,
-            style: const TextStyle(color: AppColors.mutedText, fontSize: 12),
-          ),
-          const SizedBox(height: 5),
-          Text(
-            value,
-            style: TextStyle(
-              color: color,
-              fontSize: 24,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          if (progress != null) ...[
-            const SizedBox(height: 8),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: LinearProgressIndicator(
-                value: progress!.clamp(0.0, 1.0),
-                color: color,
-                backgroundColor: color.withValues(alpha: 0.14),
-                minHeight: 5,
-              ),
-            ),
-          ],
         ],
       ),
     );
   }
 }
 
-class _SectionCard extends StatelessWidget {
-  const _SectionCard({
+class _MetricCard extends StatelessWidget {
+  const _MetricCard({required this.value, required this.progress});
+
+  final String value;
+  final double progress;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: _cardDecoration,
+      child: Row(
+        children: [
+          const Icon(Icons.analytics_outlined, color: AppColors.green),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'AI Classification Confidence',
+                  style: TextStyle(color: AppColors.mutedText, fontSize: 12),
+                ),
+                const SizedBox(height: 7),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: progress.clamp(0.0, 1.0),
+                    color: AppColors.green,
+                    backgroundColor: const Color(0xFFDCEADE),
+                    minHeight: 6,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            value,
+            style: const TextStyle(
+              color: AppColors.green,
+              fontSize: 22,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GuidanceSection extends StatelessWidget {
+  const _GuidanceSection({
     required this.title,
     required this.icon,
-    required this.child,
+    required this.items,
   });
 
   final String title;
   final IconData icon;
-  final Widget child;
+  final List<String> items;
 
   @override
   Widget build(BuildContext context) {
@@ -447,41 +458,178 @@ class _SectionCard extends StatelessWidget {
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: 14),
       padding: const EdgeInsets.all(17),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFD0E9D4)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
+      decoration: _cardDecoration,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(icon, color: AppColors.green),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  title,
-                  style: const TextStyle(
-                    color: Color(0xFF1B4332),
-                    fontWeight: FontWeight.w900,
-                    fontSize: 17,
-                  ),
-                ),
-              ),
-            ],
-          ),
+          _SectionTitle(title: title, icon: icon),
           const SizedBox(height: 12),
-          child,
+          _BulletList(items: items),
         ],
       ),
+    );
+  }
+}
+
+class _NoticeCard extends StatelessWidget {
+  const _NoticeCard({
+    required this.icon,
+    required this.title,
+    required this.message,
+  });
+
+  final IconData icon;
+  final String title;
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF8E8),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFFE7D6A8)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: const Color(0xFF8B6508)),
+          const SizedBox(width: 11),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: Color(0xFF5F470E),
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 5),
+                Text(message, style: _TreatmentRecommendationScreenState._body),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SourcesCard extends StatelessWidget {
+  const _SourcesCard({required this.sources, required this.onOpen});
+
+  final List<DiseaseSource> sources;
+  final ValueChanged<DiseaseSource> onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(17),
+      decoration: _cardDecoration,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const _SectionTitle(
+            title: 'Sources',
+            icon: Icons.verified_outlined,
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Guidance text is available offline. Opening a source requires an internet connection.',
+            style: TextStyle(
+              color: AppColors.mutedText,
+              fontSize: 12,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 8),
+          ...sources.map(
+            (source) => ListTile(
+              contentPadding: EdgeInsets.zero,
+              minVerticalPadding: 8,
+              title: Text(
+                source.name,
+                style: const TextStyle(
+                  color: Color(0xFF244D36),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              trailing: const Icon(
+                Icons.open_in_new_rounded,
+                size: 20,
+                color: AppColors.green,
+              ),
+              onTap: () => onOpen(source),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SavedStatus extends StatelessWidget {
+  const _SavedStatus({required this.savedScanId});
+
+  final String? savedScanId;
+
+  @override
+  Widget build(BuildContext context) {
+    final saved = savedScanId != null;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: _cardDecoration,
+      child: Row(
+        children: [
+          Icon(
+            saved ? Icons.bookmark_added : Icons.bookmark_border,
+            color: AppColors.green,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              saved
+                  ? 'This classification result is saved in your scan history.'
+                  : 'This scan was not confirmed as saved.',
+              style: _TreatmentRecommendationScreenState._body,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SectionTitle extends StatelessWidget {
+  const _SectionTitle({required this.title, required this.icon});
+
+  final String title;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, color: AppColors.green),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            title,
+            style: const TextStyle(
+              color: Color(0xFF1B4332),
+              fontWeight: FontWeight.w900,
+              fontSize: 17,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -497,24 +645,23 @@ class _BulletList extends StatelessWidget {
       children: items
           .map(
             (item) => Padding(
-              padding: const EdgeInsets.only(bottom: 9),
+              padding: const EdgeInsets.only(bottom: 10),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(
-                    Icons.check_circle,
-                    color: AppColors.brightGreen,
-                    size: 20,
+                  const Padding(
+                    padding: EdgeInsets.only(top: 6),
+                    child: Icon(
+                      Icons.circle,
+                      color: AppColors.brightGreen,
+                      size: 7,
+                    ),
                   ),
-                  const SizedBox(width: 9),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Text(
                       item,
-                      style: const TextStyle(
-                        color: Color(0xFF3E4841),
-                        height: 1.45,
-                        fontSize: 14,
-                      ),
+                      style: _TreatmentRecommendationScreenState._body,
                     ),
                   ),
                 ],
@@ -525,3 +672,16 @@ class _BulletList extends StatelessWidget {
     );
   }
 }
+
+final _cardDecoration = BoxDecoration(
+  color: Colors.white,
+  borderRadius: BorderRadius.circular(8),
+  border: Border.all(color: const Color(0xFFDDE7DF)),
+  boxShadow: [
+    BoxShadow(
+      color: Colors.black.withValues(alpha: 0.035),
+      blurRadius: 10,
+      offset: const Offset(0, 3),
+    ),
+  ],
+);

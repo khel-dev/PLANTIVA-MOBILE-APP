@@ -30,36 +30,54 @@ class _NotificationSettingsScreenState
 
   Future<void> _load() async {
     final id = _service.uid;
-    if (id == null) return;
-    final doc =
-        await FirebaseFirestore.instance.collection('users').doc(id).get();
-    final s = doc.data()?['notificationSettings'] as Map<String, dynamic>?;
-    if (s != null && mounted) {
+    if (id == null) {
+      if (mounted) setState(() => _loading = false);
+      return;
+    }
+    try {
+      final doc =
+          await FirebaseFirestore.instance.collection('users').doc(id).get();
+      final s = doc.data()?['notificationSettings'] as Map<String, dynamic>?;
+      if (!mounted) return;
       setState(() {
-        _push = s['push'] as bool? ?? true;
-        _disease = s['diseaseAlerts'] as bool? ?? true;
-        _weekly = s['weeklyReports'] as bool? ?? true;
-        _tips = s['educationalTips'] as bool? ?? false;
+        _push = s?['push'] as bool? ?? true;
+        _disease = s?['diseaseAlerts'] as bool? ?? true;
+        _weekly = s?['weeklyReports'] as bool? ?? true;
+        _tips = s?['educationalTips'] as bool? ?? false;
         _loading = false;
       });
-    } else if (mounted) {
+    } catch (_) {
+      if (!mounted) return;
       setState(() => _loading = false);
+      PlantivaFeedback.show(
+        context,
+        message: 'Unable to load notification settings.',
+        type: PlantivaFeedbackType.error,
+      );
     }
   }
 
   Future<void> _persist() async {
-    await _service.updateNotificationSettings({
-      'push': _push,
-      'diseaseAlerts': _disease,
-      'weeklyReports': _weekly,
-      'educationalTips': _tips,
-    });
-    if (mounted) {
+    try {
+      await _service.updateNotificationSettings({
+        'push': _push,
+        'diseaseAlerts': _disease,
+        'weeklyReports': _weekly,
+        'educationalTips': _tips,
+      });
+      if (!mounted) return;
       PlantivaFeedback.show(
         context,
         message: 'Settings saved.',
         type: PlantivaFeedbackType.success,
         duration: const Duration(seconds: 1),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      PlantivaFeedback.show(
+        context,
+        message: 'Settings could not be saved. Check your connection.',
+        type: PlantivaFeedbackType.error,
       );
     }
   }
