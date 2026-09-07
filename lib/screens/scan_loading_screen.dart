@@ -14,17 +14,29 @@ const _loadingInk = Color(0xFF173722);
 const _loadingMuted = Color(0xFF68736B);
 const _loadingBorder = Color(0xFFDDE7DC);
 
+typedef ScanPipelineRunner = Future<ScanInputPipelineResult> Function(
+  File imageFile,
+);
+typedef ScanPersistenceRunner = Future<String?> Function(
+  Map<String, String> result, {
+  required String imagePath,
+});
+
 class ScanLoadingScreen extends StatefulWidget {
   const ScanLoadingScreen({
     super.key,
     required this.imagePath,
     required this.classifier,
     required this.inputValidator,
+    this.pipelineRunner,
+    this.persistenceRunner,
   });
 
   final String imagePath;
   final ClassifierService classifier;
   final InputValidatorService inputValidator;
+  final ScanPipelineRunner? pipelineRunner;
+  final ScanPersistenceRunner? persistenceRunner;
 
   @override
   State<ScanLoadingScreen> createState() => _ScanLoadingScreenState();
@@ -71,26 +83,26 @@ class _ScanLoadingScreenState extends State<ScanLoadingScreen>
 
     try {
       final imageFile = File(widget.imagePath);
-      final pipeline = await ScanInputPipeline.run(
-        qualityCheck: () => _qualityService.analyze(imageFile),
-        semanticCheck: () => widget.inputValidator.validate(imageFile),
-        diseaseClassification: () => widget.classifier.classify(imageFile),
-      );
+      final pipeline = await (widget.pipelineRunner?.call(imageFile) ??
+          ScanInputPipeline.run(
+            qualityCheck: () => _qualityService.analyze(imageFile),
+            semanticCheck: () => widget.inputValidator.validate(imageFile),
+            diseaseClassification: () => widget.classifier.classify(imageFile),
+          ));
       final result = pipeline.result;
       if (!mounted) return;
 
-      String? savedScanId;
+      Future<String?>? saveFuture;
       if (pipeline.passedInputGates &&
           result['validation_status'] == 'validDiagnosis') {
-        try {
-          savedScanId = await ScanHistoryService.recordScan(
-            result,
-            imagePath: widget.imagePath,
-          );
-        } catch (e) {
-          debugPrint('PLANTIVA scan save failed after classification: $e');
-          savedScanId = null;
-        }
+        saveFuture = widget.persistenceRunner?.call(
+              result,
+              imagePath: widget.imagePath,
+            ) ??
+            ScanHistoryService.recordScan(
+              result,
+              imagePath: widget.imagePath,
+            );
       }
 
       if (!mounted) return;
@@ -99,7 +111,7 @@ class _ScanLoadingScreenState extends State<ScanLoadingScreen>
           pageBuilder: (_, __, ___) => ResultScreen(
             imagePath: widget.imagePath,
             result: result,
-            savedScanId: savedScanId,
+            saveFuture: saveFuture,
           ),
           transitionsBuilder: (_, animation, __, child) {
             return FadeTransition(

@@ -9,12 +9,14 @@ class ResultScreen extends StatelessWidget {
   final String imagePath;
   final Map<String, String> result;
   final String? savedScanId;
+  final Future<String?>? saveFuture;
 
   const ResultScreen({
     super.key,
     required this.imagePath,
     required this.result,
     this.savedScanId,
+    this.saveFuture,
   });
 
   String _getAboutCondition(String label) {
@@ -261,483 +263,579 @@ class ResultScreen extends StatelessWidget {
     final confidenceValue =
         double.tryParse(confidence.replaceAll('%', '')) ?? 0;
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F0),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Scrollable content
-            Expanded(
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Image with back button overlay
-                    Stack(
+    return FutureBuilder<String?>(
+      future: saveFuture,
+      initialData: savedScanId,
+      builder: (context, saveSnapshot) {
+        final currentSavedScanId = savedScanId ?? saveSnapshot.data;
+        final savePending = currentSavedScanId == null &&
+            saveFuture != null &&
+            saveSnapshot.connectionState != ConnectionState.done;
+        final saveFailed = currentSavedScanId == null && !savePending;
+
+        return Scaffold(
+          backgroundColor: const Color(0xFFF5F5F0),
+          body: SafeArea(
+            child: Column(
+              children: [
+                // Scrollable content
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        ClipRRect(
-                          borderRadius: const BorderRadius.only(
-                            bottomLeft: Radius.circular(0),
-                            bottomRight: Radius.circular(0),
-                          ),
-                          child: Image.file(
-                            File(imagePath),
-                            height: 260,
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                        // Back button
-                        Positioned(
-                          top: 12,
-                          left: 12,
-                          child: GestureDetector(
-                            onTap: () => Navigator.pop(context),
-                            child: Container(
-                              width: 40,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.85),
-                                shape: BoxShape.circle,
+                        // Image with back button overlay
+                        Stack(
+                          children: [
+                            ClipRRect(
+                              borderRadius: const BorderRadius.only(
+                                bottomLeft: Radius.circular(0),
+                                bottomRight: Radius.circular(0),
                               ),
-                              child: const Icon(
-                                Icons.arrow_back,
-                                color: Colors.black,
-                                size: 20,
+                              child: Image.file(
+                                File(imagePath),
+                                height: 260,
+                                width: double.infinity,
+                                fit: BoxFit.cover,
                               ),
                             ),
-                          ),
-                        ),
-                        // Share button
-                        Positioned(
-                          top: 12,
-                          right: 12,
-                          child: Material(
-                            color: Colors.white.withValues(alpha: 0.9),
-                            shape: const CircleBorder(),
-                            child: InkWell(
-                              customBorder: const CircleBorder(),
-                              onTap: () async {
-                                final label = result['label'] ?? 'Unknown';
-                                final confidence = result['confidence'] ?? '0%';
-                                final text = 'PLANTIVA Classification Result\n'
-                                    '$label\n'
-                                    'AI Classification Confidence: $confidence\n\n'
-                                    'PLANTIVA provides image-based screening and educational information. Visual symptoms may overlap between conditions.';
-                                await Clipboard.setData(
-                                    ClipboardData(text: text));
-                                if (!context.mounted) return;
-                                PlantivaFeedback.show(
-                                  context,
-                                  message: 'Classification result copied.',
-                                  type: PlantivaFeedbackType.success,
-                                );
-                              },
-                              child: const SizedBox(
-                                width: 40,
-                                height: 40,
-                                child: Icon(
-                                  Icons.share_outlined,
-                                  color: Colors.black87,
-                                  size: 20,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        // Analyzed badge
-                        Positioned(
-                          bottom: 12,
-                          left: 16,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.9),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: const Row(
-                              children: [
-                                Icon(
-                                  Icons.check_circle,
-                                  color: Color(0xFF2E7D32),
-                                  size: 16,
-                                ),
-                                SizedBox(width: 4),
-                                Text(
-                                  'ANALYZED',
-                                  style: TextStyle(
-                                    color: Color(0xFF2E7D32),
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: 1,
+                            // Back button
+                            Positioned(
+                              top: 12,
+                              left: 12,
+                              child: GestureDetector(
+                                onTap: () => Navigator.pop(context),
+                                child: Container(
+                                  width: 40,
+                                  height: 40,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.85),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.arrow_back,
+                                    color: Colors.black,
+                                    size: 20,
                                   ),
                                 ),
-                              ],
+                              ),
                             ),
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    // Main content
-                    Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Classification result card
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(20),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(20),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.06),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          'CLASSIFICATION RESULT',
-                                          style: TextStyle(
-                                            color: Colors.grey[500],
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.bold,
-                                            letterSpacing: 1.5,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          label,
-                                          style: const TextStyle(
-                                            color: Color(0xFF1B1B1B),
-                                            fontSize: 20,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ],
+                            // Share button
+                            Positioned(
+                              top: 12,
+                              right: 12,
+                              child: Material(
+                                color: Colors.white.withValues(alpha: 0.9),
+                                shape: const CircleBorder(),
+                                child: InkWell(
+                                  customBorder: const CircleBorder(),
+                                  onTap: () async {
+                                    final label = result['label'] ?? 'Unknown';
+                                    final confidence =
+                                        result['confidence'] ?? '0%';
+                                    final text =
+                                        'PLANTIVA Classification Result\n'
+                                        '$label\n'
+                                        'AI Classification Confidence: $confidence\n\n'
+                                        'PLANTIVA provides image-based screening and educational information. Visual symptoms may overlap between conditions.';
+                                    await Clipboard.setData(
+                                        ClipboardData(text: text));
+                                    if (!context.mounted) return;
+                                    PlantivaFeedback.show(
+                                      context,
+                                      message: 'Classification result copied.',
+                                      type: PlantivaFeedbackType.success,
+                                    );
+                                  },
+                                  child: const SizedBox(
+                                    width: 40,
+                                    height: 40,
+                                    child: Icon(
+                                      Icons.share_outlined,
+                                      color: Colors.black87,
+                                      size: 20,
                                     ),
-                                    Container(
-                                      width: 44,
-                                      height: 44,
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFFE8F5E9),
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: const Icon(
-                                        Icons.eco,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            // Analyzed badge
+                            Positioned(
+                              bottom: 12,
+                              left: 16,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.9),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: const Row(
+                                  children: [
+                                    Icon(
+                                      Icons.check_circle,
+                                      color: Color(0xFF2E7D32),
+                                      size: 16,
+                                    ),
+                                    SizedBox(width: 4),
+                                    Text(
+                                      'ANALYZED',
+                                      style: TextStyle(
                                         color: Color(0xFF2E7D32),
-                                        size: 24,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: 1,
                                       ),
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: 16),
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        // Main content
+                        Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Classification result card
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(20),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(20),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color:
+                                          Colors.black.withValues(alpha: 0.06),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              'CLASSIFICATION RESULT',
+                                              style: TextStyle(
+                                                color: Colors.grey[500],
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.bold,
+                                                letterSpacing: 1.5,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              label,
+                                              style: const TextStyle(
+                                                color: Color(0xFF1B1B1B),
+                                                fontSize: 20,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        Container(
+                                          width: 44,
+                                          height: 44,
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFFE8F5E9),
+                                            borderRadius:
+                                                BorderRadius.circular(12),
+                                          ),
+                                          child: const Icon(
+                                            Icons.eco,
+                                            color: Color(0xFF2E7D32),
+                                            size: 24,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 16),
+                                    Container(
+                                      width: double.infinity,
+                                      padding: const EdgeInsets.all(14),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFF9F9F9),
+                                        borderRadius: BorderRadius.circular(14),
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'AI Classification Confidence',
+                                            style: TextStyle(
+                                              color: Colors.grey[600],
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 6),
+                                          Text(
+                                            '${confidenceValue.toStringAsFixed(0)}%',
+                                            style: const TextStyle(
+                                              color: Color(0xFF2E7D32),
+                                              fontSize: 28,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 6),
+                                          ClipRRect(
+                                            borderRadius:
+                                                BorderRadius.circular(4),
+                                            child: LinearProgressIndicator(
+                                              value: confidenceValue / 100,
+                                              backgroundColor: Colors.grey[200],
+                                              color: const Color(0xFF2E7D32),
+                                              minHeight: 5,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 10),
+                                          Text(
+                                            'This score reflects how strongly the model matched the image to this class. It does not measure disease severity.',
+                                            style: TextStyle(
+                                              color: Colors.grey[600],
+                                              fontSize: 11,
+                                              height: 1.4,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Text(
+                                      'PLANTIVA provides image-based screening and educational information. Visual symptoms may overlap between conditions.',
+                                      style: TextStyle(
+                                        color: Colors.grey[600],
+                                        fontSize: 11,
+                                        height: 1.4,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+
+                              const SizedBox(height: 16),
+
+                              if ((result['insights'] ?? '')
+                                  .trim()
+                                  .isNotEmpty) ...[
                                 Container(
                                   width: double.infinity,
-                                  padding: const EdgeInsets.all(14),
+                                  padding: const EdgeInsets.all(18),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFF9F9F9),
-                                    borderRadius: BorderRadius.circular(14),
+                                    color: const Color(0xFF0F2918),
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(
+                                      color: const Color(0xFF2FBF4B)
+                                          .withValues(alpha: 0.35),
+                                    ),
                                   ),
                                   child: Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
-                                      Text(
-                                        'AI Classification Confidence',
-                                        style: TextStyle(
-                                          color: Colors.grey[600],
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 6),
-                                      Text(
-                                        '${confidenceValue.toStringAsFixed(0)}%',
-                                        style: const TextStyle(
-                                          color: Color(0xFF2E7D32),
-                                          fontSize: 28,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 6),
-                                      ClipRRect(
-                                        borderRadius: BorderRadius.circular(4),
-                                        child: LinearProgressIndicator(
-                                          value: confidenceValue / 100,
-                                          backgroundColor: Colors.grey[200],
-                                          color: const Color(0xFF2E7D32),
-                                          minHeight: 5,
-                                        ),
+                                      Row(
+                                        children: [
+                                          Icon(
+                                            Icons.analytics_outlined,
+                                            color: Colors.greenAccent.shade400,
+                                            size: 22,
+                                          ),
+                                          const SizedBox(width: 8),
+                                          const Text(
+                                            'AI runner-ups',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.w800,
+                                              fontSize: 15,
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                       const SizedBox(height: 10),
                                       Text(
-                                        'This score reflects how strongly the model matched the image to this class. It does not measure disease severity.',
+                                        result['insights']!.trim(),
                                         style: TextStyle(
-                                          color: Colors.grey[600],
+                                          color: Colors.white
+                                              .withValues(alpha: 0.88),
+                                          height: 1.55,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        'These scores show how the model weighs similar classes. They do not validate whether the image is a banana leaf or measure disease severity.',
+                                        style: TextStyle(
+                                          color: Colors.white
+                                              .withValues(alpha: 0.55),
                                           fontSize: 11,
-                                          height: 1.4,
+                                          height: 1.35,
                                         ),
                                       ),
                                     ],
                                   ),
                                 ),
-                                const SizedBox(height: 12),
-                                Text(
-                                  'PLANTIVA provides image-based screening and educational information. Visual symptoms may overlap between conditions.',
-                                  style: TextStyle(
-                                    color: Colors.grey[600],
-                                    fontSize: 11,
-                                    height: 1.4,
-                                  ),
-                                ),
+                                const SizedBox(height: 16),
                               ],
-                            ),
-                          ),
 
-                          const SizedBox(height: 16),
-
-                          if ((result['insights'] ?? '').trim().isNotEmpty) ...[
-                            Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.all(18),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF0F2918),
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
-                                  color: const Color(0xFF2FBF4B)
-                                      .withValues(alpha: 0.35),
-                                ),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Icon(
-                                        Icons.analytics_outlined,
-                                        color: Colors.greenAccent.shade400,
-                                        size: 22,
-                                      ),
-                                      const SizedBox(width: 8),
-                                      const Text(
-                                        'AI runner-ups',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.w800,
-                                          fontSize: 15,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 10),
-                                  Text(
-                                    result['insights']!.trim(),
-                                    style: TextStyle(
+                              // About this condition
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(20),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(20),
+                                  boxShadow: [
+                                    BoxShadow(
                                       color:
-                                          Colors.white.withValues(alpha: 0.88),
-                                      height: 1.55,
-                                      fontSize: 13,
+                                          Colors.black.withValues(alpha: 0.06),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 4),
                                     ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    'These scores show how the model weighs similar classes. They do not validate whether the image is a banana leaf or measure disease severity.',
-                                    style: TextStyle(
-                                      color:
-                                          Colors.white.withValues(alpha: 0.55),
-                                      fontSize: 11,
-                                      height: 1.35,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                          ],
-
-                          // About this condition
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(20),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(20),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.06),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 4),
+                                  ],
                                 ),
-                              ],
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Icon(
-                                      Icons.info_outline,
-                                      color: Colors.grey[600],
-                                      size: 18,
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.info_outline,
+                                          color: Colors.grey[600],
+                                          size: 18,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          'About this Condition',
+                                          style: TextStyle(
+                                            color: Colors.grey[800],
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 15,
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                    const SizedBox(width: 8),
+                                    const SizedBox(height: 12),
                                     Text(
-                                      'About this Condition',
+                                      _getAboutCondition(label),
                                       style: TextStyle(
-                                        color: Colors.grey[800],
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 15,
+                                        color: Colors.grey[600],
+                                        fontSize: 14,
+                                        height: 1.6,
                                       ),
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: 12),
-                                Text(
-                                  _getAboutCondition(label),
-                                  style: TextStyle(
-                                    color: Colors.grey[600],
-                                    fontSize: 14,
-                                    height: 1.6,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-
-                          const SizedBox(height: 16),
-
-                          // View Treatment button
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton.icon(
-                              onPressed: () {
-                                Navigator.of(context).push(
-                                  MaterialPageRoute<void>(
-                                    builder: (_) =>
-                                        TreatmentRecommendationScreen(
-                                      imagePath: imagePath,
-                                      label: label,
-                                      confidence: confidence,
-                                      summary: _getAboutCondition(label),
-                                      recommendation: _getRecommendation(label),
-                                      isHealthy: isHealthy,
-                                      savedScanId: savedScanId,
-                                    ),
-                                  ),
-                                );
-                              },
-                              icon: const Icon(Icons.medical_services_outlined),
-                              label:
-                                  const Text('View Treatment Recommendations'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF1B4332),
-                                foregroundColor: Colors.white,
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 16),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                textStyle: const TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.bold,
-                                ),
                               ),
-                            ),
-                          ),
 
-                          const SizedBox(height: 12),
+                              const SizedBox(height: 16),
 
-                          // Bottom action buttons
-                          Row(
-                            children: [
-                              // Scan Again
-                              Expanded(
-                                child: OutlinedButton.icon(
-                                  onPressed: () => Navigator.pop(context),
-                                  icon: const Icon(Icons.camera_alt_outlined),
-                                  label: const Text('Scan Again'),
-                                  style: OutlinedButton.styleFrom(
-                                    foregroundColor: const Color(0xFF1B4332),
-                                    side: const BorderSide(
-                                      color: Color(0xFF1B4332),
-                                      width: 1.5,
-                                    ),
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 14,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(16),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              // Save Result
-                              Expanded(
+                              // View Treatment button
+                              SizedBox(
+                                width: double.infinity,
                                 child: ElevatedButton.icon(
                                   onPressed: () {
-                                    if (savedScanId == null) {
-                                      PlantivaFeedback.show(
-                                        context,
-                                        message:
-                                            'This scan was not saved. Please check your connection or Firestore rules.',
-                                        type: PlantivaFeedbackType.warning,
-                                      );
-                                    }
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute<void>(
+                                        builder: (_) =>
+                                            TreatmentRecommendationScreen(
+                                          imagePath: imagePath,
+                                          label: label,
+                                          confidence: confidence,
+                                          summary: _getAboutCondition(label),
+                                          recommendation:
+                                              _getRecommendation(label),
+                                          isHealthy: isHealthy,
+                                          savedScanId: currentSavedScanId,
+                                        ),
+                                      ),
+                                    );
                                   },
-                                  icon: Icon(
-                                    savedScanId == null
-                                        ? Icons.bookmark_border
-                                        : Icons.bookmark_added,
-                                  ),
-                                  label: Text(
-                                    savedScanId == null ? 'Not Saved' : 'Saved',
-                                  ),
+                                  icon: const Icon(
+                                      Icons.medical_services_outlined),
+                                  label: const Text(
+                                      'View Treatment Recommendations'),
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: savedScanId == null
-                                        ? Colors.grey.shade700
-                                        : const Color(0xFF2E7D32),
+                                    backgroundColor: const Color(0xFF1B4332),
                                     foregroundColor: Colors.white,
                                     padding: const EdgeInsets.symmetric(
-                                      vertical: 14,
-                                    ),
+                                        vertical: 16),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(16),
+                                    ),
+                                    textStyle: const TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.bold,
                                     ),
                                   ),
                                 ),
                               ),
+
+                              const SizedBox(height: 12),
+
+                              _CloudSaveStatus(
+                                pending: savePending,
+                                failed: saveFailed,
+                              ),
+
+                              const SizedBox(height: 12),
+
+                              // Bottom action buttons
+                              Row(
+                                children: [
+                                  // Scan Again
+                                  Expanded(
+                                    child: OutlinedButton.icon(
+                                      onPressed: () => Navigator.pop(context),
+                                      icon:
+                                          const Icon(Icons.camera_alt_outlined),
+                                      label: const Text('Scan Again'),
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor:
+                                            const Color(0xFF1B4332),
+                                        side: const BorderSide(
+                                          color: Color(0xFF1B4332),
+                                          width: 1.5,
+                                        ),
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 14,
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(16),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  // Save Result
+                                  Expanded(
+                                    child: ElevatedButton.icon(
+                                      onPressed: () {
+                                        if (saveFailed) {
+                                          PlantivaFeedback.show(
+                                            context,
+                                            message:
+                                                'Scan result available. This scan was not saved to cloud history.',
+                                            type: PlantivaFeedbackType.warning,
+                                          );
+                                        }
+                                      },
+                                      icon: savePending
+                                          ? const SizedBox(
+                                              width: 18,
+                                              height: 18,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                                color: Colors.white,
+                                              ),
+                                            )
+                                          : Icon(
+                                              saveFailed
+                                                  ? Icons.cloud_off_outlined
+                                                  : Icons.bookmark_added,
+                                            ),
+                                      label: Text(
+                                        savePending
+                                            ? 'Saving...'
+                                            : saveFailed
+                                                ? 'Not Saved'
+                                                : 'Saved',
+                                      ),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: saveFailed
+                                            ? Colors.grey.shade700
+                                            : const Color(0xFF2E7D32),
+                                        foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 14,
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(16),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+
+                              const SizedBox(height: 20),
                             ],
                           ),
-
-                          const SizedBox(height: 20),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _CloudSaveStatus extends StatelessWidget {
+  const _CloudSaveStatus({required this.pending, required this.failed});
+
+  final bool pending;
+  final bool failed;
+
+  @override
+  Widget build(BuildContext context) {
+    final icon = pending
+        ? Icons.cloud_upload_outlined
+        : failed
+            ? Icons.cloud_off_outlined
+            : Icons.cloud_done_outlined;
+    final color = failed ? const Color(0xFF7A5B28) : const Color(0xFF2E7D32);
+    final message = pending
+        ? 'Saving scan...'
+        : failed
+            ? 'Scan result available. This scan was not saved to cloud history.'
+            : 'Saved to Recent Scans';
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.09),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withValues(alpha: 0.18)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 19, color: color),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(
+                color: color,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                height: 1.35,
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
